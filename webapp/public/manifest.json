@@ -1,0 +1,41 @@
+{
+  "id": "/",
+  "name": "НутриТрекер & Финансы",
+  "short_name": "НутриТрекер",
+  "description": "Умный трекер питания и финансов с искусственным интеллектом",
+  "start_url": "/?mode=standalone",
+  "scope": "/",
+  "display": "standalone",
+  "display_override": [
+    "standalone",
+    "window-controls-overlay"
+  ],
+  "background_color": "#121214",
+  "theme_color": "#121214",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/apple-touch-icon.png",
+      "sizes": "180x180",
+      "type": "image/png"
+    },
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ]
+}
