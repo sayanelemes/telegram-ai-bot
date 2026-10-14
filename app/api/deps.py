@@ -108,6 +108,24 @@ def get_stats_service(
     return StatsService(user_repo=user_repo, food_repo=food_repo, expense_repo=expense_repo)
 
 
+def get_recipe_service(
+    db_manager: DatabaseManager = Depends(get_db_manager),
+    user_repo: UserRepository = Depends(get_user_repo),
+    food_repo: FoodRepository = Depends(get_food_repo),
+    expense_repo: ExpenseRepository = Depends(get_expense_repo),
+    gemini_service: GeminiService = Depends(get_gemini_service),
+) -> "RecipeService":
+    from app.services.recipes import RecipeService
+    return RecipeService(
+        db_manager=db_manager,
+        user_repo=user_repo,
+        food_repo=food_repo,
+        expense_repo=expense_repo,
+        gemini_service=gemini_service,
+    )
+
+
+
 async def get_current_user(
     authorization: Optional[str] = Header(None, alias="Authorization"),
     x_telegram_init_data: Optional[str] = Header(None, alias="X-Telegram-Init-Data"),

@@ -82,6 +82,61 @@ class ExpenseParsedResult(BaseModel):
     items: List[ReceiptItemAnalysis] = Field(default_factory=list, description="Список товаров")
 
 
+class RecipeIngredient(BaseModel):
+    name: str = Field(description="Название ингредиента")
+    amount: str = Field(description="Бытовая мера с граммами в скобках, напр: '3 ст. л. (50 г)'")
+    grams: float = Field(description="Примерный вес в граммах", default=100.0)
+    estimated_price: float = Field(description="Ориентировочная стоимость в ₸", default=0.0)
+
+
+class RecipeGenerated(BaseModel):
+    name: str = Field(description="Название блюда")
+    description: str = Field(description="Краткое аппетитное описание")
+    cooking_time_minutes: int = Field(description="Время приготовления в минутах (5-15)", default=10)
+    utensils: List[str] = Field(description="Необходимая посуда (1-2 предмета)")
+    calories: int = Field(description="Калорийность блюда в ккал")
+    protein_g: float = Field(description="Белки в граммах")
+    fat_g: float = Field(description="Жиры в граммах")
+    carbs_g: float = Field(description="Углеводы в граммах")
+    estimated_cost: float = Field(description="Общая стоимость порции в ₸ (не более 1500 ₸)")
+    ingredients: List[RecipeIngredient] = Field(description="3-6 ингредиентов")
+    instructions: List[str] = Field(description="Пошаговые понятные инструкции")
+    high_calorie_bulking_tip: Optional[str] = Field(
+        default=None,
+        description="Лайфхак для набора массы (как легко добавить калорий)"
+    )
+
+
+class MealPlanItem(BaseModel):
+    meal_type: str = Field(description="breakfast, lunch, dinner, snack_1, snack_2")
+    name: str = Field(description="Название блюда")
+    calories: int = Field(description="Калории")
+    protein_g: float = Field(description="Белки")
+    fat_g: float = Field(description="Жиры")
+    carbs_g: float = Field(description="Углеводы")
+    quick_recipe: str = Field(description="Краткий рецепт (1-2 предложения)")
+
+
+class DayPlan(BaseModel):
+    day_name: str = Field(description="День недели")
+    meals: List[MealPlanItem] = Field(description="Приёмы пищи")
+    total_calories: int = Field(description="Итого калорий за день")
+    total_protein: float = Field(description="Итого белков")
+    total_fat: float = Field(description="Итого жиров")
+    total_carbs: float = Field(description="Итого углеводов")
+
+
+class ShoppingAisleGroup(BaseModel):
+    aisle_name: str = Field(description="Отдел магазина")
+    items: List[str] = Field(description="Список продуктов")
+
+
+class WeeklyMealPlanResult(BaseModel):
+    days: List[DayPlan] = Field(description="План на 7 дней")
+    weekly_shopping_list: List[ShoppingAisleGroup] = Field(description="Список покупок по отделам")
+    bulking_tips: str = Field(description="Советы по питанию для набора массы")
+
+
 # --- Gemini Service Implementation ---
 
 class GeminiService:
@@ -457,3 +512,129 @@ class GeminiService:
         except Exception as e:
             logger.warning(f"Could not generate food advice: {e}")
             return "Приятного аппетита! Продолжайте следить за балансом калорий и макронутриентов."
+
+    async def generate_recipe(
+        self,
+        target_calories: int,
+        target_protein: float,
+        target_fat: float,
+        target_carbs: float,
+        price_hints: str = "",
+        max_cost: float = 1500.0,
+        preferences: Optional[str] = None,
+        retry_cheaper: bool = False,
+        user_id: Optional[int] = None,
+    ) -> RecipeGenerated:
+        """
+        Generate a bulking recipe conforming to constraints:
+        - 5-15 min, 1-2 utensils, no oven, 3-6 ingredients, household measures + grams in parentheses.
+        - Cost capped at max_cost (1500 ₸). Automatic retry if over budget.
+        - If calorie deficit > 500 kcal, prioritize high-calorie easily digestible meals (shakes, cottage cheese, etc.).
+        """
+        prompt = (
+            "Ты — спортивный нутрициолог и повар. Составь быстрый, вкусный рецепт для набора массы (булкинг).\n"
+            "Пользователь ленится готовить и взвешивать, поэтому строго соблюдай правила:\n"
+            "1. Время приготовления: строго 5–15 минут.\n"
+            "2. Посуда: 1–2 предмета максимум (сковорода, ковш или блендер). БЕЗ ДУХОВКИ!\n"
+            "3. Ингредиенты: 3–6 доступных продуктов.\n"
+            "4. Мера: бытовые меры (ложки, штуки, горсти) + граммы в скобках. Напр: 'Овсяные хлопья — 4 ст. л. (60 г)'.\n"
+            f"5. Бюджет: общая расчетная стоимость порции НЕ ДОЛЖНА превышать {max_cost:.0f} ₸.\n"
+            f"6. Целевые нутриенты: ~{target_calories} ккал, ~{target_protein:.0f} г белков, ~{target_fat:.0f} г жиров, ~{target_carbs:.0f} г углеводов.\n"
+        )
+        if target_calories >= 500:
+            prompt += (
+                "7. ВНИМАНИЕ: Недобор высокий (>= 500 ккал)! Предложи калорийное, легкоусвояемое блюдо: "
+                "высококалорийный гейнер-шейк (банан + овсянка + арахисовая паста + творог/молоко); "
+                "или творог со сметаной, орехами и мёдом; или яичница с тостами и сыром.\n"
+            )
+        if price_hints:
+            prompt += f"\n<price_hints>\n{price_hints}\n</price_hints>\n"
+        if preferences:
+            prompt += f"\nПожелания пользователя: <user_request>{preferences}</user_request>\n"
+        if retry_cheaper:
+            prompt += f"\nВАЖНО: Предыдущий вариант превысил бюджет! Сделай рецепт СТРОГО дешевле {max_cost:.0f} ₸, сохранив высокую калорийность для набора массы!\n"
+
+        try:
+            config = types.GenerateContentConfig(
+                response_mime_type="application/json",
+                response_schema=RecipeGenerated,
+                thinking_config=types.ThinkingConfig(thinking_budget=0),
+                temperature=0.7,
+            )
+            response = await self._generate_with_fallback(
+                contents=[prompt],
+                config=config,
+                timeout_seconds=15.0,
+                user_id=user_id,
+            )
+            raw = self._extract_json_text(response.text or "")
+            recipe = RecipeGenerated.model_validate_json(raw)
+
+            # Check price ceiling
+            if recipe.estimated_cost > max_cost and not retry_cheaper:
+                logger.info(f"Recipe cost {recipe.estimated_cost} > {max_cost}, retrying with cheaper prompt...")
+                return await self.generate_recipe(
+                    target_calories=target_calories,
+                    target_protein=target_protein,
+                    target_fat=target_fat,
+                    target_carbs=target_carbs,
+                    price_hints=price_hints,
+                    max_cost=max_cost,
+                    preferences=preferences,
+                    retry_cheaper=True,
+                    user_id=user_id,
+                )
+
+            # Soft cap if still slightly over
+            if recipe.estimated_cost > max_cost:
+                recipe.estimated_cost = max_cost
+
+            return recipe
+        except GeminiServiceError:
+            raise
+        except Exception as e:
+            logger.error(f"Error in generate_recipe: {e}", exc_info=True)
+            raise GeminiServiceError(f"Ошибка при генерации рецепта: {e}")
+
+    async def generate_weekly_plan(
+        self,
+        daily_target_calories: int,
+        daily_target_protein: float,
+        daily_target_fat: float,
+        daily_target_carbs: float,
+        preferences: Optional[str] = None,
+        user_id: Optional[int] = None,
+    ) -> WeeklyMealPlanResult:
+        prompt = (
+            "Ты — профессиональный спортивный диетолог. Составь недельный план питания (7 дней) для набора массы.\n"
+            f"Суточная цель пользователя: ~{daily_target_calories} ккал, "
+            f"~{daily_target_protein:.0f} г белка, ~{daily_target_fat:.0f} г жира, ~{daily_target_carbs:.0f} г углей.\n"
+            "Каждый день должен включать 3 основных приёма пищи (завтрак, обед, ужин) и 1–2 перекуса/шейка.\n"
+            "Все блюда должны быть простыми и быстрыми (5–15 минут, без духовки).\n"
+            "Также составь общий список покупок на неделю, сгруппированный по отделам супермаркета:\n"
+            "- Мясной отдел\n- Молочный отдел\n- Бакалея и крупы\n- Овощи и фрукты\n- Разное\n"
+        )
+        if preferences:
+            prompt += f"\nПожелания пользователя: <user_request>{preferences}</user_request>\n"
+
+        try:
+            config = types.GenerateContentConfig(
+                response_mime_type="application/json",
+                response_schema=WeeklyMealPlanResult,
+                thinking_config=types.ThinkingConfig(thinking_budget=0),
+                temperature=0.7,
+            )
+            response = await self._generate_with_fallback(
+                contents=[prompt],
+                config=config,
+                timeout_seconds=20.0,
+                user_id=user_id,
+            )
+            raw = self._extract_json_text(response.text or "")
+            return WeeklyMealPlanResult.model_validate_json(raw)
+        except GeminiServiceError:
+            raise
+        except Exception as e:
+            logger.error(f"Error in generate_weekly_plan: {e}", exc_info=True)
+            raise GeminiServiceError(f"Ошибка генерации плана питания: {e}")
+
