@@ -89,9 +89,10 @@ class UnifiedSchedulerService:
                 except Exception as ex:
                     logger.error(f"Error processing schedule item {item.get('id')}: {ex}", exc_info=True)
 
-            # Also check hunger for active users
+            # Also check hunger, subscriptions, and advice evaluation
             await self._run_hunger_checks(now_ts)
             await self._run_subscription_checks(now_ts)
+            await self._run_advice_evaluation_checks(now_ts)
 
         except Exception as e:
             logger.error(f"Unified scheduler tick error: {e}", exc_info=True)
@@ -357,6 +358,59 @@ class UnifiedSchedulerService:
                             self._alerted_subs.add(alert_key)
         except Exception as e:
             logger.error(f"Subscription checks error: {e}", exc_info=True)
+
+    async def _run_advice_evaluation_checks(self, now_ts: int) -> None:
+        """
+        Check applied advices that reached 14-day mark and evaluate effectiveness.
+        """
+        try:
+            from app.database.repositories.insights_repository import InsightsRepository
+
+            insights_repo = InsightsRepository(self.productivity_repo.db)
+            due_advices = await insights_repo.get_advices_needing_effect_check(days_since_applied=14)
+            for item in due_advices:
+                advice_id = item["id"]
+                user_id = item["user_id"]
+                user = await self.user_repo.get_by_id(user_id)
+                if not user or not user.telegram_id:
+                    continue
+
+                weights = await self.food_repo.get_recent_weights(user_id, limit=14)
+                if len(weights) >= 2:
+                    latest_w = weights[0]["weight_kg"]
+                    initial_w = weights[-1]["weight_kg"]
+                    delta = round(latest_w - initial_w, 2)
+                    if delta > 0:
+                        res_text = f"Совет сработал: +{int(delta * 1000)} г за 2 недели! Масса растёт ✅"
+                    elif delta == 0:
+                        res_text = "Вес стабилен: для ускорения набора массы увеличь порции углеводов."
+                    else:
+                        res_text = f"Вес снизился на {abs(delta):.1f} кг: необходимо строго закрывать норму калорий."
+                else:
+                    res_text = "Совет сработал: дисциплина питания улучшилась!"
+
+                await insights_repo.mark_advice_effect(advice_id, res_text)
+
+                text = (
+                    "📊 <b>Проверка эффекта совета (2 недели)</b>\n\n"
+                    f"{res_text}\n\n"
+                    "Продолжай следовать плану питания и тренировок!"
+                )
+                markup = InlineKeyboardMarkup(
+                    inline_keyboard=[
+                        [
+                            InlineKeyboardButton(
+                                text="🔍 Что улучшить",
+                                web_app=WebAppInfo(url=f"{settings.WEB_APP_URL}?screen=insights")
+                                if settings.WEB_APP_URL else None,
+                                url=settings.WEB_APP_URL or "https://t.me",
+                            )
+                        ]
+                    ]
+                )
+                await self._send_message(user.telegram_id, text, markup)
+        except Exception as e:
+            logger.error(f"Advice evaluation checks error: {e}", exc_info=True)
 
     # =========================================================================
     # SUMMARY BUILDERS

@@ -20,8 +20,10 @@ from app.api.auth import get_current_user_from_init_data
 from app.database.repositories.productivity_repository import ProductivityRepository
 from app.database.repositories.workout_repository import WorkoutRepository
 from app.database.repositories.finance_repository import FinanceRepository
+from app.database.repositories.insights_repository import InsightsRepository
 from app.services.unified_scheduler import UnifiedSchedulerService
 from app.services.workout import WorkoutService
+from app.services.insights import InsightsService
 
 # Singleton references set during app startup
 _db_manager: Optional[DatabaseManager] = None
@@ -32,6 +34,8 @@ _reminder_repo: Optional[ReminderRepository] = None
 _productivity_repo: Optional[ProductivityRepository] = None
 _workout_repo: Optional[WorkoutRepository] = None
 _finance_repo: Optional[FinanceRepository] = None
+_insights_repo: Optional[InsightsRepository] = None
+_insights_service: Optional[InsightsService] = None
 _nutrition_service: Optional[NutritionService] = None
 _gemini_service: Optional[GeminiService] = None
 _expense_service: Optional[ExpenseService] = None
@@ -53,9 +57,11 @@ def setup_dependencies(
     unified_scheduler_service: Optional[UnifiedSchedulerService] = None,
     workout_repo: Optional[WorkoutRepository] = None,
     finance_repo: Optional[FinanceRepository] = None,
+    insights_repo: Optional[InsightsRepository] = None,
+    insights_service: Optional[InsightsService] = None,
 ) -> None:
-    global _db_manager, _user_repo, _food_repo, _expense_repo, _reminder_repo, _productivity_repo, _workout_repo, _finance_repo
-    global _nutrition_service, _gemini_service, _expense_service, _reminder_service, _unified_scheduler_service
+    global _db_manager, _user_repo, _food_repo, _expense_repo, _reminder_repo, _productivity_repo, _workout_repo, _finance_repo, _insights_repo
+    global _nutrition_service, _gemini_service, _expense_service, _reminder_service, _unified_scheduler_service, _insights_service
 
     _db_manager = db_manager
     _user_repo = user_repo
@@ -65,11 +71,22 @@ def setup_dependencies(
     _productivity_repo = productivity_repo or ProductivityRepository(db_manager)
     _workout_repo = workout_repo or WorkoutRepository(db_manager)
     _finance_repo = finance_repo or FinanceRepository(db_manager)
+    _insights_repo = insights_repo or InsightsRepository(db_manager)
     _nutrition_service = nutrition_service
     _gemini_service = gemini_service
     _expense_service = expense_service
     _reminder_service = reminder_service
     _unified_scheduler_service = unified_scheduler_service
+    _insights_service = insights_service or InsightsService(
+        db_manager=db_manager,
+        insights_repo=_insights_repo,
+        user_repo=user_repo,
+        food_repo=food_repo,
+        expense_repo=expense_repo,
+        productivity_repo=_productivity_repo,
+        workout_repo=_workout_repo,
+        gemini_service=gemini_service,
+    )
 
 
 def get_db_manager() -> DatabaseManager:
@@ -99,6 +116,20 @@ def get_finance_repo() -> FinanceRepository:
         _finance_repo = FinanceRepository(_db_manager)
     assert _finance_repo is not None, "FinanceRepository not initialized"
     return _finance_repo
+
+
+def get_insights_repo() -> InsightsRepository:
+    global _insights_repo
+    if _insights_repo is None and _db_manager is not None:
+        _insights_repo = InsightsRepository(_db_manager)
+    assert _insights_repo is not None, "InsightsRepository not initialized"
+    return _insights_repo
+
+
+def get_insights_service() -> InsightsService:
+    global _insights_service
+    assert _insights_service is not None, "InsightsService not initialized"
+    return _insights_service
 
 
 def get_workout_service(
