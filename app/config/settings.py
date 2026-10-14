@@ -1,4 +1,5 @@
 from pathlib import Path
+from typing import Optional
 from pydantic import Field, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
@@ -19,8 +20,9 @@ class Settings(BaseSettings):
     MAX_MEAL_COST: float = Field(default=1500.0, description="Default max cost per meal in recipes")
     WEB_APP_URL: str = Field(default="http://localhost:8000", description="URL where Telegram WebApp is served")
     API_HOST: str = Field(default="0.0.0.0", description="Host to bind FastAPI server")
-    API_PORT: int = Field(default=8000, description="Port to bind FastAPI server")
     STATIC_DIR: str = Field(default="webapp/dist", description="Path to static webapp assets")
+    HTTPS_PROXY: Optional[str] = Field(default=None, description="HTTP/HTTPS proxy for outbound requests")
+    GEMINI_BASE_URL: Optional[str] = Field(default=None, description="Custom base URL for Gemini API")
 
     model_config = SettingsConfigDict(
         env_file=".env",

@@ -1,3 +1,4 @@
+import os
 import asyncio
 import datetime
 import logging
@@ -154,7 +155,18 @@ class GeminiService:
         if self._client is None:
             if not self.api_key:
                 raise GeminiServiceError("GEMINI_API_KEY не задан в конфигурации.")
-            self._client = genai.Client(api_key=self.api_key)
+
+            http_kwargs = {}
+            if settings.GEMINI_BASE_URL:
+                http_kwargs["base_url"] = settings.GEMINI_BASE_URL
+
+            proxy_url = settings.HTTPS_PROXY or os.environ.get("HTTPS_PROXY") or os.environ.get("https_proxy")
+            if proxy_url:
+                http_kwargs["client_args"] = {"proxy": proxy_url}
+                http_kwargs["async_client_args"] = {"proxy": proxy_url}
+
+            http_opts = types.HttpOptions(**http_kwargs) if http_kwargs else None
+            self._client = genai.Client(api_key=self.api_key, http_options=http_opts)
         return self._client
 
     @staticmethod
