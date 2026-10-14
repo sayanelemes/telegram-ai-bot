@@ -12,14 +12,22 @@ services:
     environment:
       - PYTHONUNBUFFERED=1
       - DATABASE_PATH=/app/data/bot.db
+      - HTTPS_PROXY=socks5://warp:1080
     mem_limit: 256m
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
+    depends_on:
+      - warp
     logging:
       driver: "json-file"
       options:
         max-size: "10m"
         max-file: "3"
+
+  warp:
+    image: caomingjun/warp
+    container_name: nutritracker_warp
+    restart: unless-stopped
+    environment:
+      - WARP_SLEEP=2
 
   caddy:
     image: caddy:2-alpine
