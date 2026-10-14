@@ -4,16 +4,29 @@ from aiogram.utils.keyboard import InlineKeyboardBuilder
 from app.config.settings import settings
 
 
-def get_webapp_inline_keyboard() -> Optional[InlineKeyboardMarkup]:
-    # Telegram strictly requires HTTPS for WebAppInfo buttons
-    if not settings.WEB_APP_URL or not settings.WEB_APP_URL.startswith("https://"):
-        return None
+import urllib.parse
+
+def get_webapp_inline_keyboard(
+    text: str = "🍎 Открыть приложение",
+    screen: Optional[str] = None,
+    params: Optional[dict] = None,
+) -> InlineKeyboardMarkup:
+    url = settings.WEB_APP_URL or "http://localhost:8000"
+    query_parts = []
+    if screen:
+        query_parts.append(f"screen={urllib.parse.quote(screen)}")
+    if params:
+        for k, v in params.items():
+            query_parts.append(f"{urllib.parse.quote(str(k))}={urllib.parse.quote(str(v))}")
+    if query_parts:
+        sep = "&" if "?" in url else "?"
+        url = f"{url}{sep}{'&'.join(query_parts)}"
 
     builder = InlineKeyboardBuilder()
     builder.row(
         InlineKeyboardButton(
-            text="🍎 Открыть приложение",
-            web_app=WebAppInfo(url=settings.WEB_APP_URL)
+            text=text,
+            web_app=WebAppInfo(url=url)
         )
     )
     return builder.as_markup()

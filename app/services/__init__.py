@@ -11,6 +11,12 @@ from app.services.gemini import (
 )
 from app.services.expenses import ExpenseService
 from app.services.reminders import ReminderService
+from app.services.smart_input import (
+    SmartInputService,
+    SmartInputResult,
+    SmartInputItem,
+    ProcessedInputOutcome,
+)
 
 __all__ = [
     "NutritionService",
@@ -27,4 +33,8 @@ __all__ = [
     "ExpenseParsedResult",
     "ExpenseService",
     "ReminderService",
+    "SmartInputService",
+    "SmartInputResult",
+    "SmartInputItem",
+    "ProcessedInputOutcome",
 ]

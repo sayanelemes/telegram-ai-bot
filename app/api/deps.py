@@ -54,6 +54,11 @@ def setup_dependencies(
     _reminder_service = reminder_service
 
 
+def get_db_manager() -> DatabaseManager:
+    assert _db_manager is not None, "DatabaseManager not initialized"
+    return _db_manager
+
+
 def get_user_repo() -> UserRepository:
     assert _user_repo is not None, "UserRepository not initialized"
     return _user_repo

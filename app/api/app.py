@@ -34,7 +34,9 @@ def create_app() -> FastAPI:
         static_path = project_root / static_path
 
     if static_path.exists() and (static_path / "index.html").exists():
-        app.mount("/assets", StaticFiles(directory=str(static_path / "assets")), name="assets")
+        assets_dir = static_path / "assets"
+        assets_dir.mkdir(parents=True, exist_ok=True)
+        app.mount("/assets", StaticFiles(directory=str(assets_dir)), name="assets")
 
         @app.get("/{full_path:path}")
         async def serve_spa(full_path: str, request: Request):

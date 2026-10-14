@@ -109,6 +109,14 @@ async def main() -> None:
     try:
         # Delete pending webhook updates if any, then start polling
         await bot.delete_webhook(drop_pending_updates=True)
+        if settings.WEB_APP_URL:
+            from aiogram.types import MenuButtonWebApp, WebAppInfo
+            try:
+                await bot.set_chat_menu_button(
+                    menu_button=MenuButtonWebApp(text="🚀 Приложение", web_app=WebAppInfo(url=settings.WEB_APP_URL))
+                )
+            except Exception as e:
+                logger.warning(f"Failed to set default WebApp menu button: {e}")
         logger.info("Bot polling started successfully.")
         await dp.start_polling(bot, allowed_updates=dp.resolve_used_update_types())
     except (asyncio.CancelledError, KeyboardInterrupt):

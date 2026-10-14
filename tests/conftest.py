@@ -145,3 +145,34 @@ def mock_bot():
     bot.send_message = AsyncMock()
     bot.download = AsyncMock()
     return bot
+
+
+@pytest.fixture
+def app_instance(
+    temp_db_manager,
+    user_repo,
+    food_repo,
+    expense_repo,
+    reminder_repo,
+    nutrition_service,
+    mock_gemini_service,
+    mock_bot,
+):
+    from app.api.app import create_app
+    from app.api.deps import setup_dependencies
+
+    expense_service = ExpenseService(expense_repo)
+    reminder_service = ReminderService(reminder_repo, bot=mock_bot)
+
+    setup_dependencies(
+        db_manager=temp_db_manager,
+        user_repo=user_repo,
+        food_repo=food_repo,
+        expense_repo=expense_repo,
+        reminder_repo=reminder_repo,
+        nutrition_service=nutrition_service,
+        gemini_service=mock_gemini_service,
+        expense_service=expense_service,
+        reminder_service=reminder_service,
+    )
+    return create_app()
