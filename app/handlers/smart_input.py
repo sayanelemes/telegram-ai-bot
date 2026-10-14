@@ -4,6 +4,7 @@ from aiogram.fsm.context import FSMContext
 from aiogram.types import Message, CallbackQuery, InlineKeyboardMarkup, InlineKeyboardButton
 
 from app.database.repositories.user_repository import UserRepository
+from app.database.repositories.expense_repository import ExpenseRepository
 from app.services.smart_input import SmartInputService
 from app.services.gemini import GeminiServiceError, GeminiService
 from app.database.connection import DatabaseManager
@@ -59,9 +60,17 @@ async def handle_free_text_chat_input(
 
     # 2. Handlers for outcomes
     if outcome.action == "saved":
+        row_buttons = [
+            InlineKeyboardButton(text="↩️ Отменить", callback_data=f"undo_{outcome.link_id}"),
+        ]
+        if outcome.intent in ("food_and_expense", "expense_only"):
+            row_buttons.append(
+                InlineKeyboardButton(text="🛍 Импульсивная", callback_data=f"toggle_impulse_{outcome.link_id}")
+            )
+
         kb = InlineKeyboardMarkup(inline_keyboard=[
+            row_buttons,
             [
-                InlineKeyboardButton(text="↩️ Отменить", callback_data=f"undo_{outcome.link_id}"),
                 InlineKeyboardButton(text="🚀 Приложение", web_app=get_webapp_inline_keyboard().inline_keyboard[0][0].web_app),
             ]
         ])
@@ -116,3 +125,39 @@ async def handle_undo_callback(
 async def handle_cancel_preview(callback: CallbackQuery):
     await callback.message.edit_text("❌ Запись отменена.")
     await callback.answer()
+
+
+@router.callback_query(F.data.startswith("toggle_impulse_"))
+async def handle_toggle_impulse_callback(
+    callback: CallbackQuery,
+    user_repo: UserRepository,
+    db_manager: DatabaseManager,
+):
+    link_id = callback.data.replace("toggle_impulse_", "")
+    user = await user_repo.get_or_create_user(telegram_id=callback.from_user.id)
+    expense_repo = ExpenseRepository(db_manager)
+
+    updated = await expense_repo.toggle_impulse_by_link_id(user_id=user.id, link_id=link_id)
+    if not updated:
+        await callback.answer("Запись расхода не найдена.", show_alert=True)
+        return
+
+    is_imp = updated.is_impulse or updated.is_impulsive
+    status_text = "🛍 Отмечено как импульсивная" if is_imp else "✅ Обычный расход"
+    btn_text = "✅ Обычная" if is_imp else "🛍 Импульсивная"
+
+    kb = InlineKeyboardMarkup(inline_keyboard=[
+        [
+            InlineKeyboardButton(text="↩️ Отменить", callback_data=f"undo_{link_id}"),
+            InlineKeyboardButton(text=btn_text, callback_data=f"toggle_impulse_{link_id}"),
+        ],
+        [
+            InlineKeyboardButton(text="🚀 Приложение", web_app=get_webapp_inline_keyboard().inline_keyboard[0][0].web_app),
+        ]
+    ])
+    try:
+        await callback.message.edit_reply_markup(reply_markup=kb)
+    except Exception:
+        pass
+    await callback.answer(status_text)
+

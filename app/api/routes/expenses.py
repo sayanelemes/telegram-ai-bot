@@ -21,6 +21,9 @@ from app.api.schemas import (
     BudgetUpdateRequest,
     CategoryBudgetSchema,
     CategoryBudgetCreateRequest,
+    ImpulseToggleRequest,
+    ImpulseLimitUpdateRequest,
+    ImpulseStatsResponse,
 )
 from app.database.models import UserDB, ExpenseDB, ExpenseItemDB
 from app.database.repositories import ExpenseRepository
@@ -305,6 +308,85 @@ async def update_budget(
     return BudgetSchema(**summary)
 
 
+@router.get("/impulse-stats", response_model=ImpulseStatsResponse)
+async def get_impulse_stats(
+    user: UserDB = Depends(get_current_user),
+    expense_repo: ExpenseRepository = Depends(get_expense_repo),
+):
+    try:
+        tz = ZoneInfo(user.timezone)
+    except Exception:
+        tz = ZoneInfo("Asia/Almaty")
+    now = datetime.now(tz)
+    month_start_str = now.strftime("%Y-%m-01")
+    today_str = now.strftime("%Y-%m-%d")
+
+    stats = await expense_repo.get_impulse_stats(
+        user_id=user.id,
+        start_date=month_start_str,
+        end_date=today_str,
+    )
+    return ImpulseStatsResponse(**stats)
+
+
+@router.post("/impulse-limit")
+async def update_impulse_limit(
+    payload: ImpulseLimitUpdateRequest,
+    user: UserDB = Depends(get_current_user),
+    expense_repo: ExpenseRepository = Depends(get_expense_repo),
+):
+    new_limit = await expense_repo.update_impulse_monthly_limit(
+        user_id=user.id,
+        limit=payload.impulse_monthly_limit,
+    )
+    return {
+        "success": True,
+        "impulse_monthly_limit": new_limit,
+    }
+
+
+@router.patch("/{expense_id}/impulse", response_model=ExpenseEntryResponse)
+async def toggle_expense_impulse(
+    expense_id: int,
+    payload: Optional[ImpulseToggleRequest] = None,
+    user: UserDB = Depends(get_current_user),
+    expense_repo: ExpenseRepository = Depends(get_expense_repo),
+):
+    is_imp = payload.is_impulse if payload else None
+    reason = payload.impulse_reason if payload else None
+
+    updated = await expense_repo.toggle_or_set_impulse(
+        user_id=user.id,
+        expense_id=expense_id,
+        is_impulse=is_imp,
+        impulse_reason=reason,
+    )
+    if not updated:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Расход не найден.")
+
+    return ExpenseEntryResponse(
+        id=updated.id,
+        merchant=updated.merchant,
+        amount=updated.amount,
+        currency=updated.currency,
+        category=updated.category,
+        category_label=ExpenseService.get_category_name(updated.category),
+        entry_type=updated.entry_type,
+        is_impulsive=updated.is_impulsive,
+        ai_analysis=updated.ai_analysis,
+        description=updated.description,
+        expense_date=updated.expense_date,
+        items=[
+            ExpenseItemSchema(
+                id=it.id,
+                name=it.name,
+                price=it.price,
+                quantity=it.quantity,
+            )
+            for it in updated.items
+        ]
+    )
+
 
 @router.delete("/{expense_id}")
 async def delete_expense(
@@ -312,8 +394,8 @@ async def delete_expense(
     user: UserDB = Depends(get_current_user),
     expense_repo: ExpenseRepository = Depends(get_expense_repo),
 ):
-    # Enforce user isolation
     deleted = await expense_repo.delete_expense(expense_id, user.id)
     if not deleted:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Расход/доход не найден.")
     return {"success": True, "message": "Запись успешно удалена"}
+

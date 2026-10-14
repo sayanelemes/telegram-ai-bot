@@ -475,3 +475,197 @@ class ExpenseRepository:
                 "impulse_percentage": impulse_pct,
                 "categories": categories,
             }
+
+    async def toggle_or_set_impulse(
+        self,
+        user_id: int,
+        expense_id: int,
+        is_impulse: Optional[bool] = None,
+        impulse_reason: Optional[str] = None
+    ) -> Optional[ExpenseDB]:
+        async with self.db.get_connection() as conn:
+            cur = await conn.execute(
+                "SELECT is_impulse, is_impulsive FROM expenses WHERE id = ? AND user_id = ?",
+                (expense_id, user_id)
+            )
+            row = await cur.fetchone()
+            if not row:
+                return None
+
+            curr_val = bool(row["is_impulse"] or row["is_impulsive"])
+            new_val = (not curr_val) if is_impulse is None else bool(is_impulse)
+            val_int = 1 if new_val else 0
+
+            if impulse_reason is not None:
+                await conn.execute(
+                    "UPDATE expenses SET is_impulse = ?, is_impulsive = ?, impulse_reason = ? WHERE id = ? AND user_id = ?",
+                    (val_int, val_int, impulse_reason, expense_id, user_id)
+                )
+            else:
+                await conn.execute(
+                    "UPDATE expenses SET is_impulse = ?, is_impulsive = ? WHERE id = ? AND user_id = ?",
+                    (val_int, val_int, expense_id, user_id)
+                )
+            await conn.commit()
+
+        return await self.get_expense_by_id(expense_id)
+
+    async def toggle_impulse_by_link_id(
+        self,
+        user_id: int,
+        link_id: str
+    ) -> Optional[ExpenseDB]:
+        async with self.db.get_connection() as conn:
+            cur = await conn.execute(
+                "SELECT id, is_impulse, is_impulsive FROM expenses WHERE link_id = ? AND user_id = ?",
+                (link_id, user_id)
+            )
+            row = await cur.fetchone()
+            if not row:
+                return None
+            exp_id = row["id"]
+            curr_val = bool(row["is_impulse"] or row["is_impulsive"])
+            new_val = 0 if curr_val else 1
+            await conn.execute(
+                "UPDATE expenses SET is_impulse = ?, is_impulsive = ? WHERE id = ? AND user_id = ?",
+                (new_val, new_val, exp_id, user_id)
+            )
+            await conn.commit()
+
+        return await self.get_expense_by_id(exp_id)
+
+    async def get_impulse_stats(
+        self,
+        user_id: int,
+        start_date: str,
+        end_date: str,
+    ) -> Dict[str, Any]:
+        """
+        Impulse analytics for bulking:
+        - percentage of monthly spending
+        - top-3 impulse categories
+        - price of impulses in days of food
+        - protein equivalents warning if monthly limit exceeded
+        """
+        async with self.db.get_connection() as conn:
+            cur = await conn.execute(
+                "SELECT COALESCE(SUM(amount), 0.0) as total, COUNT(id) as count "
+                "FROM expenses WHERE user_id = ? AND expense_date >= ? AND expense_date <= ? AND (entry_type = 'expense' OR entry_type IS NULL)",
+                (user_id, start_date, end_date)
+            )
+            r_tot = await cur.fetchone()
+            total_spent = float(r_tot["total"]) if r_tot else 0.0
+            total_count = r_tot["count"] if r_tot else 0
+
+            cur_imp = await conn.execute(
+                "SELECT COALESCE(SUM(amount), 0.0) as impulse_total, COUNT(id) as impulse_count "
+                "FROM expenses WHERE user_id = ? AND expense_date >= ? AND expense_date <= ? "
+                "AND (entry_type = 'expense' OR entry_type IS NULL) AND (is_impulse = 1 OR is_impulsive = 1)",
+                (user_id, start_date, end_date)
+            )
+            r_imp = await cur_imp.fetchone()
+            impulse_total = float(r_imp["impulse_total"]) if r_imp else 0.0
+            impulse_count = r_imp["impulse_count"] if r_imp else 0
+
+            cur_cats = await conn.execute(
+                "SELECT category, COALESCE(SUM(amount), 0.0) as total, COUNT(id) as count "
+                "FROM expenses "
+                "WHERE user_id = ? AND expense_date >= ? AND expense_date <= ? "
+                "AND (entry_type = 'expense' OR entry_type IS NULL) AND (is_impulse = 1 OR is_impulsive = 1) "
+                "GROUP BY category ORDER BY total DESC LIMIT 3",
+                (user_id, start_date, end_date)
+            )
+            r_cats = await cur_cats.fetchall()
+            top_cats = []
+            for rc in r_cats:
+                tot = float(rc["total"])
+                pct = round((tot / impulse_total * 100), 1) if impulse_total > 0 else 0.0
+                cat = rc["category"]
+                cat_labels = {
+                    "food": "🍔 Еда",
+                    "transport": "🚕 Транспорт",
+                    "shopping": "🛒 Покупки",
+                    "entertainment": "🎟 Развлечения",
+                    "utilities": "💡 Счета и услуги",
+                    "other": "📦 Другое",
+                }
+                lbl = cat_labels.get(cat.lower(), f"📦 {cat.capitalize()}")
+                top_cats.append({
+                    "category": cat,
+                    "label": lbl,
+                    "total": tot,
+                    "count": rc["count"],
+                    "percentage": pct
+                })
+
+            cur_food = await conn.execute(
+                "SELECT COALESCE(SUM(amount), 0.0) as food_total "
+                "FROM expenses WHERE user_id = ? AND category = 'food' AND expense_date >= ? AND expense_date <= ? "
+                "AND (entry_type = 'expense' OR entry_type IS NULL)",
+                (user_id, start_date, end_date)
+            )
+            r_food = await cur_food.fetchone()
+            food_total = float(r_food["food_total"]) if r_food else 0.0
+
+            s_d = datetime.strptime(start_date, "%Y-%m-%d").date()
+            e_d = datetime.strptime(end_date, "%Y-%m-%d").date()
+            days_count = max(1, (e_d - s_d).days + 1)
+
+            daily_food_avg = (food_total / days_count) if food_total > 0 else 2500.0
+            food_days_cost = round(impulse_total / daily_food_avg, 1) if daily_food_avg > 0 else 0.0
+
+            cur_b = await conn.execute(
+                "SELECT impulse_monthly_limit FROM budgets WHERE user_id = ?",
+                (user_id,)
+            )
+            r_b = await cur_b.fetchone()
+            impulse_limit = float(r_b["impulse_monthly_limit"]) if r_b and r_b["impulse_monthly_limit"] else 0.0
+
+            is_exceeded = (impulse_limit > 0) and (impulse_total >= impulse_limit)
+            impulse_pct = round((impulse_total / total_spent * 100), 1) if total_spent > 0 else 0.0
+
+            chicken_kg = round(impulse_total / 2200.0, 1)
+            cottage_cheese_packs = round(impulse_total / 600.0, 1)
+            eggs_dozens = round(impulse_total / 700.0, 1)
+
+            warning_message = None
+            if is_exceeded:
+                warning_message = (
+                    f"⚠️ Превышен лимит на импульсивные покупки ({impulse_total:,.0f} / {impulse_limit:,.0f} ₸)! "
+                    f"На эту сумму ({impulse_total:,.0f} ₸) можно было купить {chicken_kg} кг куриного филе, "
+                    f"{cottage_cheese_packs} пачек творога или {eggs_dozens} десятков яиц для набора массы!"
+                )
+
+            return {
+                "start_date": start_date,
+                "end_date": end_date,
+                "total_spent": total_spent,
+                "impulse_total": impulse_total,
+                "impulse_count": impulse_count,
+                "impulse_percentage": impulse_pct,
+                "top_categories": top_cats,
+                "food_days_cost": food_days_cost,
+                "impulse_monthly_limit": impulse_limit,
+                "is_limit_exceeded": is_exceeded,
+                "protein_equivalents": {
+                    "chicken_kg": chicken_kg,
+                    "cottage_cheese_packs": cottage_cheese_packs,
+                    "eggs_dozens": eggs_dozens,
+                },
+                "warning_message": warning_message,
+            }
+
+    async def update_impulse_monthly_limit(self, user_id: int, limit: float) -> float:
+        now = datetime.utcnow().isoformat()
+        async with self.db.get_connection() as conn:
+            await conn.execute(
+                "INSERT INTO budgets (user_id, impulse_monthly_limit, updated_at) "
+                "VALUES (?, ?, ?) "
+                "ON CONFLICT(user_id) DO UPDATE SET "
+                "impulse_monthly_limit = excluded.impulse_monthly_limit, "
+                "updated_at = excluded.updated_at",
+                (user_id, limit, now)
+            )
+            await conn.commit()
+            return limit
+

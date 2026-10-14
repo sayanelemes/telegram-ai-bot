@@ -289,3 +289,34 @@ class WeeklySummaryResponse(BaseModel):
     impulse_percentage: float
     summary_text: str
 
+
+class ImpulseToggleRequest(BaseModel):
+    is_impulse: Optional[bool] = None
+    impulse_reason: Optional[str] = None
+
+
+class ImpulseLimitUpdateRequest(BaseModel):
+    impulse_monthly_limit: float = Field(ge=0.0)
+
+
+class ProteinEquivalents(BaseModel):
+    chicken_kg: float
+    cottage_cheese_packs: float
+    eggs_dozens: float
+
+
+class ImpulseStatsResponse(BaseModel):
+    start_date: str
+    end_date: str
+    total_spent: float
+    impulse_total: float
+    impulse_count: int
+    impulse_percentage: float
+    top_categories: List[TopCategoryItem]
+    food_days_cost: float
+    impulse_monthly_limit: float
+    is_limit_exceeded: bool
+    protein_equivalents: ProteinEquivalents
+    warning_message: Optional[str] = None
+
+
