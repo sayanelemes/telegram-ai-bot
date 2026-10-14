@@ -32,14 +32,6 @@
           </button>
         </div>
       </div>
-
-      <!-- Global Search -->
-      <div class="search-box">
-        <svg class="search-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
-        <input type="text" id="global-search" placeholder="Поиск заметок, задач, еды, расходов..." autocomplete="off">
-        <button id="search-clear" class="btn-clear hidden">&times;</button>
-      </div>
-      <div id="search-results" class="search-results-dropdown hidden"></div>
     </header>
 
     <!-- Main Views Container -->
@@ -50,7 +42,7 @@
         <!-- Calorie Hero Card -->
         <div class="card hero-card">
           <div class="hero-header">
-            <span class="card-title">🔥 Калории за день</span>
+            <span class="card-title">🔥 Калории сегодня</span>
             <span class="hero-target-pill" id="target-pill">Цель: 2 400 ккал</span>
           </div>
           <div class="hero-calories">
@@ -67,7 +59,7 @@
           </div>
           <!-- Bulking Warning -->
           <div id="bulking-warning" class="alert-box alert-warning hidden">
-            ⚠️ <b>Внимание: недобор калорий!</b> Для роста массы необходимо закрыть минимум 90% нормы.
+            ⚠️ <b>Недобор калорий!</b> Для роста массы необходимо закрыть норму.
           </div>
           <!-- Macros Row -->
           <div class="macros-grid">
@@ -92,67 +84,32 @@
         <!-- Quick Actions Row -->
         <div class="quick-actions-row">
           <button class="quick-chip" id="action-add-water">💧 +250 мл</button>
+          <button class="quick-chip" onclick="app.addWater(500)">💧 +500 мл</button>
           <button class="quick-chip" id="action-add-weight">⚖️ Вес</button>
           <button class="quick-chip" id="action-recipe-quick">🍳 Рецепт</button>
-          <button class="quick-chip" id="action-add-note">📝 Заметка</button>
         </div>
 
-        <!-- Water Tracker Card -->
-        <div class="card water-card">
-          <div class="card-header">
-            <span class="card-title">💧 Водный баланс</span>
-            <span class="water-total" id="water-total">0 / 2500 мл</span>
-          </div>
-          <div class="water-progress-bg">
-            <div class="water-progress-fill" id="water-fill" style="width: 0%;"></div>
-          </div>
-          <div class="water-buttons">
-            <button class="btn-sm" onclick="app.addWater(250)">+250 мл</button>
-            <button class="btn-sm" onclick="app.addWater(500)">+500 мл</button>
-          </div>
-        </div>
-
-        <!-- Workout of the Day Card -->
-        <div class="card" id="card-workout-today">
-          <div class="card-header">
-            <span class="card-title">💪 Тренировка сегодня</span>
-            <button class="btn-text" onclick="app.switchTab('workout')">Журнал &rarr;</button>
-          </div>
-          <div id="workout-today-info" class="text-secondary">Нет запланированных тренировок на сегодня.</div>
-        </div>
-
-        <!-- Tasks & Reminders Card -->
+        <!-- Meals Eaten Today -->
         <div class="card">
           <div class="card-header">
-            <span class="card-title">📋 Задачи и напоминания</span>
-            <button class="btn-text" onclick="app.switchTab('more')">Все &rarr;</button>
+            <span class="card-title">🍽 Съедено за сегодня</span>
+            <button class="btn-secondary btn-sm" onclick="app.repeatYesterday()">🔁 Повторить вчера</button>
           </div>
-          <div id="today-tasks-list" class="items-list">
-            <div class="empty-text">Все задачи выполнены! 🎉</div>
-          </div>
+          <div id="today-food-entries" class="entries-list"></div>
         </div>
 
         <!-- Today Expenses Summary -->
         <div class="card">
           <div class="card-header">
-            <span class="card-title">💰 Расходы сегодня</span>
+            <span class="card-title">💰 Траты за сегодня</span>
             <span class="money-sum" id="today-expense-sum">0 ₸</span>
           </div>
           <div id="today-impulse-pill" class="impulse-pill hidden">
-            🛍 Импульсивные: <span id="today-impulse-sum">0 ₸</span>
+            🛍 Из них импульсивные: <span id="today-impulse-sum">0 ₸</span>
           </div>
           <div id="today-expense-list" class="items-list">
             <div class="empty-text">Трат сегодня ещё не было.</div>
           </div>
-        </div>
-
-        <!-- Insights "Что улучшить" Card -->
-        <div class="card highlight-card" id="card-insights-preview">
-          <div class="card-header">
-            <span class="card-title">💡 Что улучшить</span>
-            <button class="btn-text" onclick="app.switchTab('more', 'advice')">Подробнее &rarr;</button>
-          </div>
-          <div id="insights-preview-text" class="text-secondary">Анализируем ваш прогресс питания и тренировок...</div>
         </div>
       </section>
 

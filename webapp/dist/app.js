@@ -74,13 +74,15 @@ const app = {
     options.headers = headers;
     try {
       const res = await fetch(endpoint, options);
-      if (res.status === 401) {
-        console.warn("Unauthorized API call:", endpoint);
+      if (!res.ok) {
+        const errData = await res.json().catch(() => ({}));
+        console.warn("API call failed:", res.status, endpoint, errData);
+        return { error: true, status: res.status, message: errData.detail || "Ошибка запроса" };
       }
       return await res.json();
     } catch (err) {
       console.error("API error:", endpoint, err);
-      return null;
+      return { error: true, message: err.message };
     }
   },
 
@@ -223,20 +225,42 @@ const app = {
   // --- 5. Unified Smart Input & Undo ---
   async handleSmartInput(text) {
     this.haptic("medium");
-    const res = await this.api("/api/input", {
-      method: "POST",
-      body: JSON.stringify({ text })
-    });
+    const inputEl = document.getElementById("unified-text-input");
+    const sendBtn = document.getElementById("btn-send");
+    if (inputEl) {
+      inputEl.disabled = true;
+      inputEl.placeholder = "Сохраняю...";
+    }
+    if (sendBtn) sendBtn.disabled = true;
 
-    if (res) {
-      if (res.action === "saved" || res.action === "fast_path") {
-        this.showUndoToast(res.message, res.link_id);
-        this.refreshAll();
-      } else if (res.action === "preview") {
-        this.showConfirmModal(res);
-      } else {
-        alert(res.message || "Обработано.");
+    try {
+      const res = await this.api("/api/input", {
+        method: "POST",
+        body: JSON.stringify({ text })
+      });
+
+      if (!res || res.error) {
+        this.showToast(res?.message || "Не удалось сохранить. Попробуйте еще раз.", "error");
+        return;
       }
+
+      if (res.action === "saved" || res.action === "fast_path" || res.action === "preview") {
+        this.showUndoToast(res.message || "✅ Запись сохранена", res.link_id);
+        await this.refreshAll();
+      } else {
+        this.showToast(res.message || "Ничего не записано. Напишите, например: '2 яйца' или 'кофе 1200 тг'.");
+        await this.refreshAll();
+      }
+    } catch (err) {
+      console.error("Smart input error:", err);
+      this.showToast("Ошибка при отправке: " + err.message, "error");
+    } finally {
+      if (inputEl) {
+        inputEl.disabled = false;
+        inputEl.placeholder = "Например: 2 яйца или кофе 1200 тг...";
+        inputEl.focus();
+      }
+      if (sendBtn) sendBtn.disabled = false;
     }
   },
 
@@ -286,14 +310,35 @@ const app = {
     }
   },
 
+  showToast(message, type = "info") {
+    const toast = document.getElementById("undo-toast");
+    const msgEl = document.getElementById("undo-message");
+    const undoBtn = document.getElementById("btn-undo-action");
+    const fillEl = document.getElementById("undo-timer-fill");
+    if (!toast || !msgEl) return;
+
+    msgEl.textContent = message;
+    if (undoBtn) undoBtn.style.display = "none";
+    if (fillEl) fillEl.style.width = "100%";
+    toast.classList.remove("hidden");
+
+    if (this.undoTimeout) clearTimeout(this.undoTimeout);
+    this.undoTimeout = setTimeout(() => {
+      toast.classList.add("hidden");
+      if (undoBtn) undoBtn.style.display = "inline-flex";
+    }, 3500);
+  },
+
   showUndoToast(message, linkId) {
     const toast = document.getElementById("undo-toast");
     const msgEl = document.getElementById("undo-message");
+    const undoBtn = document.getElementById("btn-undo-action");
     const fillEl = document.getElementById("undo-timer-fill");
     if (!toast || !msgEl || !fillEl) return;
 
     this.activeLinkId = linkId;
     msgEl.textContent = message;
+    if (undoBtn) undoBtn.style.display = linkId ? "inline-flex" : "none";
     toast.classList.remove("hidden");
     fillEl.style.width = "100%";
 
@@ -398,24 +443,29 @@ const app = {
 
   async fetchFoodDiary() {
     const data = await this.api("/api/food");
-    if (!data) return;
+    if (!data || data.error) return;
     const list = document.getElementById("food-entries-list");
-    if (!list) return;
+    const todayList = document.getElementById("today-food-entries");
 
-    if (!data.length) {
-      list.innerHTML = `<div class="empty-text">Дневник сегодня пуст. Сфотографируйте блюдо или напишите в строку ввода!</div>`;
-      return;
-    }
-
-    list.innerHTML = data.map(item => `
-      <div class="card list-item-row">
-        <div>
-          <b>${item.meal_type || item.meal_name || "Приём пищи"}</b> (${item.total_calories} ккал)
-          <div class="text-secondary" style="font-size: 11px;">🥩 ${item.total_protein}г · 🥑 ${item.total_fat}г · 🍚 ${item.total_carbs}г · ${item.entry_time || ""}</div>
+    const renderItems = (container) => {
+      if (!container) return;
+      if (!Array.isArray(data) || !data.length) {
+        container.innerHTML = `<div class="empty-text">Пока ничего не записано. Напишите внизу: <i>«2 яйца и батончик»</i> или <i>«кофе 1200 тг»</i></div>`;
+        return;
+      }
+      container.innerHTML = data.map(item => `
+        <div class="card list-item-row" style="margin-bottom: 8px;">
+          <div>
+            <b>${item.meal_type || item.meal_name || "Приём пищи"}</b> (${item.total_calories} ккал)
+            <div class="text-secondary" style="font-size: 11px; margin-top: 2px;">🥩 ${item.total_protein}г · 🥑 ${item.total_fat}г · 🍚 ${item.total_carbs}г · ⏱ ${item.entry_time || ""}</div>
+          </div>
+          <button class="btn-text" style="color: #ef4444; font-size: 18px; padding: 4px 8px;" onclick="app.deleteFoodEntry(${item.id})">&times;</button>
         </div>
-        <button class="btn-text" style="color: #ef4444;" onclick="app.deleteFoodEntry(${item.id})">&times;</button>
-      </div>
-    `).join("");
+      `).join("");
+    };
+
+    renderItems(list);
+    renderItems(todayList);
   },
 
   async deleteFoodEntry(id) {
@@ -427,13 +477,51 @@ const app = {
 
   async fetchExpenses() {
     const data = await this.api("/api/expenses");
-    if (!data) return;
+    if (!data || data.error) return;
     const sumEl = document.getElementById("month-expense-sum");
     const todaySumEl = document.getElementById("today-expense-sum");
+    const todayImpEl = document.getElementById("today-impulse-sum");
+    const todayImpPill = document.getElementById("today-impulse-pill");
+    const todayExpList = document.getElementById("today-expense-list");
+    const expList = document.getElementById("expenses-list");
+
     if (sumEl && data.monthly_total !== undefined) sumEl.textContent = `${data.monthly_total.toLocaleString()} ₸`;
     if (todaySumEl && data.today_total !== undefined) todaySumEl.textContent = `${data.today_total.toLocaleString()} ₸`;
 
-    // Impulse spending stat
+    // Render recent expenses into today's list
+    const entries = data.recent_entries || [];
+    const todayEntries = entries.slice(0, 5);
+    const impulseTotal = todayEntries.filter(x => x.is_impulse || x.is_impulsive).reduce((acc, x) => acc + (x.amount || 0), 0);
+
+    if (todayImpEl) todayImpEl.textContent = `${impulseTotal.toLocaleString()} ₸`;
+    if (todayImpPill) {
+      if (impulseTotal > 0) todayImpPill.classList.remove("hidden");
+      else todayImpPill.classList.add("hidden");
+    }
+
+    const renderExp = (container) => {
+      if (!container) return;
+      if (!todayEntries.length) {
+        container.innerHTML = `<div class="empty-text">Трат сегодня ещё не было.</div>`;
+        return;
+      }
+      container.innerHTML = todayEntries.map(item => `
+        <div class="card list-item-row" style="margin-bottom: 6px;">
+          <div>
+            <b>${item.description || item.merchant || "Покупка"}</b> — ${item.amount} ${item.currency || "₸"}
+            <div class="text-secondary" style="font-size: 11px;">${item.category || "разное"}</div>
+          </div>
+          <button class="btn-sm ${item.is_impulse ? 'btn-danger' : 'btn-secondary'}" onclick="app.toggleImpulse(${item.id})">
+            ${item.is_impulse ? '🛍 Импульс' : 'План'}
+          </button>
+        </div>
+      `).join("");
+    };
+
+    renderExp(todayExpList);
+    renderExp(expList);
+
+    // Impulse spending stat on money tab
     const impText = document.getElementById("impulse-stats-text");
     const impBar = document.getElementById("impulse-progress-bar");
     if (impText && data.impulsive_total !== undefined) {
