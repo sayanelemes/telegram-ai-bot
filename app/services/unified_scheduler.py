@@ -43,6 +43,7 @@ class UnifiedSchedulerService:
         self.bot = bot
         self.scheduler = AsyncIOScheduler()
         self._last_hunger_alert: Dict[int, int] = {}  # user_id -> timestamp
+        self._alerted_subs: set = set()  # "sub_id:date" -> alerted
 
     def set_bot(self, bot: Bot) -> None:
         self.bot = bot
@@ -90,6 +91,7 @@ class UnifiedSchedulerService:
 
             # Also check hunger for active users
             await self._run_hunger_checks(now_ts)
+            await self._run_subscription_checks(now_ts)
 
         except Exception as e:
             logger.error(f"Unified scheduler tick error: {e}", exc_info=True)
@@ -294,6 +296,67 @@ class UnifiedSchedulerService:
             ]
         )
         await self._send_message(telegram_id, text, markup)
+
+    async def _run_subscription_checks(self, now_ts: int) -> None:
+        """
+        Check subscriptions due tomorrow and send advance reminder.
+        «Завтра списание 2 990 ₸ за Яндекс Плюс. Продлеваем?»
+        """
+        try:
+            from app.database.repositories.finance_repository import FinanceRepository
+            from app.utils.formatters import format_currency
+
+            finance_repo = FinanceRepository(self.productivity_repo.db)
+
+            async with self.productivity_repo.db.get_connection() as conn:
+                cur = await conn.execute("SELECT DISTINCT user_id FROM subscriptions")
+                rows = await cur.fetchall()
+                user_ids = [r["user_id"] for r in rows]
+
+            for uid in user_ids:
+                user = await self.user_repo.get_by_id(uid)
+                if not user or not user.telegram_id:
+                    continue
+
+                tz_str = user.timezone or "Asia/Almaty"
+                try:
+                    tz = ZoneInfo(tz_str)
+                except Exception:
+                    tz = ZoneInfo("Asia/Almaty")
+
+                tomorrow_str = (datetime.fromtimestamp(now_ts, tz=tz) + timedelta(days=1)).date().isoformat()
+
+                modes = await self.productivity_repo.get_active_modes(uid)
+                if modes.get("dnd"):
+                    continue
+
+                subs = await finance_repo.get_subscriptions(uid)
+                for sub in subs:
+                    if sub.get("next_payment_date") == tomorrow_str:
+                        alert_key = f"{sub['id']}:{tomorrow_str}"
+                        if alert_key not in self._alerted_subs:
+                            amt_str = format_currency(sub["amount"], sub.get("currency", "₸"))
+                            name = sub["name"]
+                            text = (
+                                "💳 <b>Напоминание о подписке</b>\n\n"
+                                f"Завтра списание <b>{amt_str}</b> за <b>{name}</b>. Продлеваем?"
+                            )
+                            markup = InlineKeyboardMarkup(
+                                inline_keyboard=[
+                                    [
+                                        InlineKeyboardButton(
+                                            text="💳 Открыть финансы",
+                                            web_app=WebAppInfo(url=f"{settings.WEB_APP_URL}?screen=money")
+                                            if settings.WEB_APP_URL else None,
+                                            url=settings.WEB_APP_URL or "https://t.me",
+                                        )
+                                    ]
+                                ]
+                            )
+                            await self._send_message(user.telegram_id, text, markup)
+                            self._alerted_subs.add(alert_key)
+        except Exception as e:
+            logger.error(f"Subscription checks error: {e}", exc_info=True)
 
     # =========================================================================
     # SUMMARY BUILDERS

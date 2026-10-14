@@ -5,6 +5,7 @@ from app.database.repositories.reminder_repository import ReminderRepository
 from app.database.repositories.gemini_usage_repository import GeminiUsageRepository
 from app.database.repositories.productivity_repository import ProductivityRepository
 from app.database.repositories.workout_repository import WorkoutRepository
+from app.database.repositories.finance_repository import FinanceRepository
 
 __all__ = [
     "UserRepository",
@@ -14,4 +15,5 @@ __all__ = [
     "GeminiUsageRepository",
     "ProductivityRepository",
     "WorkoutRepository",
+    "FinanceRepository",
 ]

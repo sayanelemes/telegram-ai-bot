@@ -53,6 +53,8 @@ async def main() -> None:
     productivity_repo = ProductivityRepository(db_manager)
     from app.database.repositories.workout_repository import WorkoutRepository
     workout_repo = WorkoutRepository(db_manager)
+    from app.database.repositories.finance_repository import FinanceRepository
+    finance_repo = FinanceRepository(db_manager)
 
     # 4. Services
     nutrition_service = NutritionService()
@@ -83,6 +85,7 @@ async def main() -> None:
         productivity_repo=productivity_repo,
         unified_scheduler_service=unified_scheduler_service,
         workout_repo=workout_repo,
+        finance_repo=finance_repo,
     )
     fastapi_app = create_app()
 

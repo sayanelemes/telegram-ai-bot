@@ -19,6 +19,7 @@ from app.api.auth import get_current_user_from_init_data
 
 from app.database.repositories.productivity_repository import ProductivityRepository
 from app.database.repositories.workout_repository import WorkoutRepository
+from app.database.repositories.finance_repository import FinanceRepository
 from app.services.unified_scheduler import UnifiedSchedulerService
 from app.services.workout import WorkoutService
 
@@ -30,6 +31,7 @@ _expense_repo: Optional[ExpenseRepository] = None
 _reminder_repo: Optional[ReminderRepository] = None
 _productivity_repo: Optional[ProductivityRepository] = None
 _workout_repo: Optional[WorkoutRepository] = None
+_finance_repo: Optional[FinanceRepository] = None
 _nutrition_service: Optional[NutritionService] = None
 _gemini_service: Optional[GeminiService] = None
 _expense_service: Optional[ExpenseService] = None
@@ -50,8 +52,9 @@ def setup_dependencies(
     productivity_repo: Optional[ProductivityRepository] = None,
     unified_scheduler_service: Optional[UnifiedSchedulerService] = None,
     workout_repo: Optional[WorkoutRepository] = None,
+    finance_repo: Optional[FinanceRepository] = None,
 ) -> None:
-    global _db_manager, _user_repo, _food_repo, _expense_repo, _reminder_repo, _productivity_repo, _workout_repo
+    global _db_manager, _user_repo, _food_repo, _expense_repo, _reminder_repo, _productivity_repo, _workout_repo, _finance_repo
     global _nutrition_service, _gemini_service, _expense_service, _reminder_service, _unified_scheduler_service
 
     _db_manager = db_manager
@@ -61,6 +64,7 @@ def setup_dependencies(
     _reminder_repo = reminder_repo
     _productivity_repo = productivity_repo or ProductivityRepository(db_manager)
     _workout_repo = workout_repo or WorkoutRepository(db_manager)
+    _finance_repo = finance_repo or FinanceRepository(db_manager)
     _nutrition_service = nutrition_service
     _gemini_service = gemini_service
     _expense_service = expense_service
@@ -87,6 +91,14 @@ def get_workout_repo() -> WorkoutRepository:
         _workout_repo = WorkoutRepository(_db_manager)
     assert _workout_repo is not None, "WorkoutRepository not initialized"
     return _workout_repo
+
+
+def get_finance_repo() -> FinanceRepository:
+    global _finance_repo
+    if _finance_repo is None and _db_manager is not None:
+        _finance_repo = FinanceRepository(_db_manager)
+    assert _finance_repo is not None, "FinanceRepository not initialized"
+    return _finance_repo
 
 
 def get_workout_service(
