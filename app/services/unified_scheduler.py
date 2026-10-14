@@ -1,9 +1,8 @@
-import asyncio
 import json
 import logging
 from datetime import datetime, timedelta, timezone
 from typing import Optional, Dict, Any, List
-from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
+from zoneinfo import ZoneInfo
 
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from apscheduler.triggers.interval import IntervalTrigger
@@ -426,7 +425,7 @@ class UnifiedSchedulerService:
             tz = ZoneInfo(tz_str)
         except Exception:
             tz = ZoneInfo("Asia/Almaty")
-        today_str = datetime.now(tz=tz).date().isoformat()
+        datetime.now(tz=tz).date().isoformat()
 
         # Weight delta
         weights = await self.food_repo.get_recent_weights(user_id, limit=2)

@@ -1,5 +1,4 @@
 import logging
-from typing import Optional
 from fastapi import APIRouter, Depends, Query
 from app.api.deps import get_current_user, get_stats_service
 from app.api.schemas import (
@@ -58,7 +57,6 @@ async def get_weekly_summary(
 @router.get("/morning-summary")
 async def get_morning_summary_endpoint(
     user: UserDB = Depends(get_current_user),
-    repo: "ProductivityRepository" = Depends(lambda: None),
 ):
     from app.api.deps import get_productivity_repo, get_user_repo, get_food_repo
     from app.services.unified_scheduler import UnifiedSchedulerService

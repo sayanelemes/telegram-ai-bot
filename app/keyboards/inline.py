@@ -1,4 +1,4 @@
-from typing import List, Optional
+from typing import Optional
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton, WebAppInfo
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 from app.config.settings import settings

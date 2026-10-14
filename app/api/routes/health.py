@@ -1,7 +1,7 @@
 import logging
 from datetime import datetime
 from zoneinfo import ZoneInfo
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends
 from pydantic import BaseModel, Field
 
 from app.api.deps import get_current_user, get_db_manager, get_user_repo, get_nutrition_service

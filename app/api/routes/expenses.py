@@ -34,6 +34,7 @@ from app.services import (
     InvalidImageError,
     GeminiServiceError,
 )
+from app.services.stats import StatsService
 from app.config.settings import settings
 
 logger = logging.getLogger(__name__)

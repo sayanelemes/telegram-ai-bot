@@ -1,5 +1,4 @@
 import pytest
-import json
 from datetime import datetime, timedelta
 from unittest.mock import AsyncMock, MagicMock
 from httpx import AsyncClient, ASGITransport
@@ -249,7 +248,7 @@ async def test_advice_generation_apply_and_undo(
     user = await user_repo_s11.get_or_create_user(telegram_id=11003, timezone="Asia/Almaty")
 
     # Initial calorie goal = 2500
-    initial_goal = await user_repo_s11.save_calorie_goal(
+    await user_repo_s11.save_calorie_goal(
         CalorieGoalDB(
             user_id=user.id,
             bmr=1700,

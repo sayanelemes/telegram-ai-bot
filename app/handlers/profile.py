@@ -310,7 +310,7 @@ async def process_new_activity(
     )
     await user_repo.save_calorie_goal(goal_db)
 
-    text = f"✅ Активность обновлена!\n\n" + build_profile_view_text(profile, goal_db)
+    text = "✅ Активность обновлена!\n\n" + build_profile_view_text(profile, goal_db)
     await callback.message.edit_text(text, reply_markup=get_profile_keyboard(), parse_mode="HTML")
     await callback.answer()
 
@@ -360,6 +360,6 @@ async def process_new_goal(
     )
     await user_repo.save_calorie_goal(goal_db)
 
-    text = f"✅ Цель обновлена!\n\n" + build_profile_view_text(profile, goal_db)
+    text = "✅ Цель обновлена!\n\n" + build_profile_view_text(profile, goal_db)
     await callback.message.edit_text(text, reply_markup=get_profile_keyboard(), parse_mode="HTML")
     await callback.answer()

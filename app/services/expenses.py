@@ -1,8 +1,7 @@
 from datetime import datetime, timedelta
-from typing import Dict, Any, List
+from typing import Dict, Any
 from zoneinfo import ZoneInfo
 from app.database.repositories.expense_repository import ExpenseRepository
-from app.utils.formatters import format_currency
 
 
 class ExpenseService:

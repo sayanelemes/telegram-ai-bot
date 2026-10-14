@@ -1,6 +1,6 @@
-from typing import AsyncGenerator, Optional
+from __future__ import annotations
+from typing import Optional
 from fastapi import Depends, Header
-from app.config.settings import settings
 from app.database.connection import DatabaseManager
 from app.database.models import UserDB
 from app.database.repositories import (
@@ -14,6 +14,8 @@ from app.services import (
     GeminiService,
     ExpenseService,
     ReminderService,
+    StatsService,
+    RecipeService,
 )
 from app.api.auth import get_current_user_from_init_data
 
@@ -194,8 +196,7 @@ def get_stats_service(
     user_repo: UserRepository = Depends(get_user_repo),
     food_repo: FoodRepository = Depends(get_food_repo),
     expense_repo: ExpenseRepository = Depends(get_expense_repo),
-) -> "StatsService":
-    from app.services.stats import StatsService
+) -> StatsService:
     return StatsService(user_repo=user_repo, food_repo=food_repo, expense_repo=expense_repo)
 
 
@@ -205,8 +206,7 @@ def get_recipe_service(
     food_repo: FoodRepository = Depends(get_food_repo),
     expense_repo: ExpenseRepository = Depends(get_expense_repo),
     gemini_service: GeminiService = Depends(get_gemini_service),
-) -> "RecipeService":
-    from app.services.recipes import RecipeService
+) -> RecipeService:
     return RecipeService(
         db_manager=db_manager,
         user_repo=user_repo,

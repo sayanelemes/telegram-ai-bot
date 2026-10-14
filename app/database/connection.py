@@ -1,6 +1,6 @@
 import logging
 from pathlib import Path
-from typing import AsyncGenerator, Dict, Any, List
+from typing import AsyncGenerator, Dict, Any
 from contextlib import asynccontextmanager
 import aiosqlite
 
@@ -467,6 +467,10 @@ CREATE INDEX IF NOT EXISTS idx_notes_user_pinned ON notes(user_id, is_pinned);
 CREATE INDEX IF NOT EXISTS idx_workout_logs_user_date ON workout_logs(user_id, workout_date);
 CREATE INDEX IF NOT EXISTS idx_workout_logs_exercise ON workout_logs(user_id, exercise_name);
 CREATE INDEX IF NOT EXISTS idx_idempotency_expires ON idempotency_keys(expires_at);
+CREATE INDEX IF NOT EXISTS idx_savings_goals_user ON savings_goals(user_id);
+CREATE INDEX IF NOT EXISTS idx_subscriptions_user_date ON subscriptions(user_id, next_payment_date);
+CREATE INDEX IF NOT EXISTS idx_debts_user ON debts(user_id, is_settled);
+CREATE INDEX IF NOT EXISTS idx_archive_user_date ON daily_aggregates_archive(user_id, archive_date);
 """
 
 

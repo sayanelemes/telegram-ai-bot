@@ -8,7 +8,7 @@ from datetime import datetime
 from zoneinfo import ZoneInfo
 from httpx import AsyncClient, ASGITransport
 
-from app.database.models import UserDB, CalorieGoalDB, FoodEntryDB, FoodItemDB, ExpenseDB
+from app.database.models import CalorieGoalDB
 from app.services.gemini import (
     RecipeGenerated,
     RecipeIngredient,
@@ -184,7 +184,7 @@ async def test_recipe_to_expense(app_instance, user_repo, expense_repo, test_set
         auth_header = make_valid_init_data(test_settings.BOT_TOKEN, user_id, "RecipeExpenseTester")
         headers = {"X-Telegram-Init-Data": auth_header}
 
-        user = await user_repo.get_or_create_user(telegram_id=user_id)
+        await user_repo.get_or_create_user(telegram_id=user_id)
 
         res = await client.post(
             "/api/recipes/to-expense",
@@ -212,7 +212,7 @@ async def test_shopping_list_checklist_and_recipe_export(app_instance, user_repo
         auth_header = make_valid_init_data(test_settings.BOT_TOKEN, user_id, "ShoppingTester")
         headers = {"X-Telegram-Init-Data": auth_header}
 
-        user = await user_repo.get_or_create_user(telegram_id=user_id)
+        await user_repo.get_or_create_user(telegram_id=user_id)
 
         # 1. Add manual item
         res_add = await client.post(
@@ -267,7 +267,7 @@ async def test_weekly_meal_plan_and_import(app_instance, user_repo, mock_gemini_
         auth_header = make_valid_init_data(test_settings.BOT_TOKEN, user_id, "WeeklyPlanTester")
         headers = {"X-Telegram-Init-Data": auth_header}
 
-        user = await user_repo.get_or_create_user(telegram_id=user_id)
+        await user_repo.get_or_create_user(telegram_id=user_id)
 
         # 1. Generate weekly meal plan
         res_plan = await client.post("/api/recipes/weekly-plan", headers=headers, json={"preferences": "Больше белка"})

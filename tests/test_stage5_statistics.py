@@ -8,13 +8,10 @@ from zoneinfo import ZoneInfo
 from httpx import AsyncClient, ASGITransport
 
 from app.database.models import (
-    UserDB,
-    UserProfileDB,
     CalorieGoalDB,
     FoodEntryDB,
     FoodItemDB,
     ExpenseDB,
-    ExpenseItemDB,
 )
 
 
@@ -214,7 +211,7 @@ async def test_category_limits_and_alert_thresholds(app_instance, user_repo, exp
         auth_header = make_valid_init_data(test_settings.BOT_TOKEN, user_id, "BudgetLimitUser")
         headers = {"X-Telegram-Init-Data": auth_header}
 
-        user = await user_repo.get_or_create_user(telegram_id=user_id)
+        await user_repo.get_or_create_user(telegram_id=user_id)
 
         # Set limit for 'food': 10 000 KZT
         set_res = await client.post(

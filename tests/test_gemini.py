@@ -1,10 +1,7 @@
 import pytest
-from unittest.mock import AsyncMock, MagicMock
 from app.services.gemini import (
     GeminiService,
-    GeminiServiceError,
     FoodAnalysisResult,
-    FoodItemAnalysis,
     ReceiptAnalysisResult,
     ExpenseParsedResult,
 )

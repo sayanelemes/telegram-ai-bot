@@ -1,5 +1,5 @@
 import pytest
-from unittest.mock import AsyncMock, MagicMock
+from unittest.mock import AsyncMock
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.storage.memory import MemoryStorage, StorageKey
 from aiogram.types import Message, CallbackQuery, User, Chat
@@ -13,7 +13,7 @@ from app.handlers.start import (
     process_activity,
     process_goal,
 )
-from app.handlers.menu import handle_today, handle_my_goal
+from app.handlers.menu import handle_today
 from app.states.user_states import OnboardingStates
 from app.services.reminders import ReminderService
 
@@ -174,7 +174,7 @@ async def test_onboarding_and_start_flow(
 
 @pytest.mark.asyncio
 async def test_menu_handlers(user_repo, food_repo, expense_repo):
-    user = await user_repo.get_or_create_user(telegram_id=98765, first_name="Sam")
+    await user_repo.get_or_create_user(telegram_id=98765, first_name="Sam")
     msg = AsyncMock(spec=Message)
     msg.from_user = make_user(telegram_id=98765, first_name="Sam")
     msg.answer = AsyncMock()

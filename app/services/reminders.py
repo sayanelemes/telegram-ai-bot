@@ -1,9 +1,8 @@
 import logging
-from typing import Optional, Dict, Any, List
+from typing import Optional
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from apscheduler.triggers.cron import CronTrigger
-from apscheduler.triggers.interval import IntervalTrigger
 from aiogram import Bot
 
 from app.database.repositories.reminder_repository import ReminderRepository
@@ -128,7 +127,7 @@ class ReminderService:
     async def _send_reminder_message(self, telegram_id: int, reminder_type: str) -> None:
         """Scheduled task callback: sends notification to user via Telegram."""
         if not self.bot:
-            logger.warning(f"Cannot send reminder: Bot instance is not set.")
+            logger.warning("Cannot send reminder: Bot instance is not set.")
             return
 
         message_text = self.REMINDER_MESSAGES.get(

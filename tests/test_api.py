@@ -8,8 +8,8 @@ from httpx import AsyncClient, ASGITransport
 from app.api.app import create_app
 from app.api.deps import setup_dependencies
 from app.api.auth import validate_telegram_init_data
-from app.database.models import UserProfileDB, CalorieGoalDB, FoodEntryDB, FoodItemDB, ExpenseDB
-from app.services.nutrition import NutritionService
+from app.config.settings import settings
+from app.database.models import CalorieGoalDB, FoodEntryDB
 from app.services.expenses import ExpenseService
 from app.services.reminders import ReminderService
 
@@ -26,9 +26,6 @@ def make_valid_init_data(bot_token: str, user_id: int, first_name: str = "User")
     hash_val = hmac.new(secret_key, data_check_string.encode("utf-8"), hashlib.sha256).hexdigest()
     params["hash"] = hash_val
     return urllib.parse.urlencode(params)
-
-
-from app.config.settings import settings
 
 
 @pytest.fixture
@@ -367,7 +364,7 @@ async def test_user_data_isolation(app_instance, user_repo, food_repo, bot_token
 
 @pytest.mark.asyncio
 async def test_standalone_auth_and_code(app_instance, user_repo):
-    from app.api.auth import create_login_code, create_auth_token
+    from app.api.auth import create_login_code
 
     transport = ASGITransport(app=app_instance)
     async with AsyncClient(transport=transport, base_url="http://test") as client:

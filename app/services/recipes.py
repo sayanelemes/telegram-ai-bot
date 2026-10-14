@@ -14,9 +14,6 @@ from app.database.repositories.food_repository import FoodRepository
 from app.database.repositories.expense_repository import ExpenseRepository
 from app.services.gemini import (
     GeminiService,
-    RecipeGenerated,
-    WeeklyMealPlanResult,
-    GeminiServiceError,
 )
 
 logger = logging.getLogger(__name__)
@@ -223,7 +220,7 @@ class RecipeService:
         today_str = now_dt.strftime("%Y-%m-%d")
         time_str = now_dt.strftime("%H:%M")
 
-        link_id = recipe_data.get("link_id") or f"quick_{uuid.uuid4().hex[:10]}"
+        recipe_data.get("link_id") or f"quick_{uuid.uuid4().hex[:10]}"
         recipe_name = recipe_data.get("name", "Блюдо по рецепту")
         calories = int(recipe_data.get("calories", 0))
         protein = float(recipe_data.get("protein_g", 0.0))

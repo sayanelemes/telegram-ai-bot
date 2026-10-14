@@ -10,8 +10,7 @@ from app.database.repositories.food_repository import FoodRepository
 from app.database.repositories.expense_repository import ExpenseRepository
 from app.keyboards.reply import get_main_menu_keyboard
 from app.keyboards.inline import get_meal_details_keyboard
-from app.utils.formatters import generate_progress_bar, format_number, format_currency
-from app.handlers.start import render_main_dashboard
+from app.utils.formatters import generate_progress_bar, format_number
 from app.config.settings import settings
 from app.api.auth import create_auth_token, create_login_code
 

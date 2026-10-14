@@ -1,6 +1,5 @@
 from datetime import datetime
 from typing import List, Optional, Dict, Any
-import aiosqlite
 from app.database.connection import DatabaseManager
 from app.database.models import ExpenseDB, ExpenseItemDB, BudgetDB
 
@@ -555,7 +554,7 @@ class ExpenseRepository:
             )
             r_tot = await cur.fetchone()
             total_spent = float(r_tot["total"]) if r_tot else 0.0
-            total_count = r_tot["count"] if r_tot else 0
+            r_tot["count"] if r_tot else 0
 
             cur_imp = await conn.execute(
                 "SELECT COALESCE(SUM(amount), 0.0) as impulse_total, COUNT(id) as impulse_count "

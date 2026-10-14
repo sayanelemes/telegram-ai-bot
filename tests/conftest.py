@@ -1,9 +1,8 @@
-import os
 import pytest
 import pytest_asyncio
 import tempfile
 from pathlib import Path
-from unittest.mock import AsyncMock, MagicMock
+from unittest.mock import AsyncMock
 
 from app.database.connection import DatabaseManager
 from app.database.repositories import (

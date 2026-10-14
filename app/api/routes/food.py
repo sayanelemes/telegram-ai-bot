@@ -1,9 +1,9 @@
 import logging
 from datetime import datetime, timedelta
-from typing import Optional, List
+from typing import Optional
 from zoneinfo import ZoneInfo
-from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, status, Body
-from pydantic import BaseModel, Field
+from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, status
+from pydantic import BaseModel
 
 from app.api.deps import (
     get_current_user,

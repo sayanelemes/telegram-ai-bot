@@ -21,6 +21,7 @@ from app.api.routes.modes import router as modes_router
 from app.api.routes.workouts import router as workouts_router
 from app.api.routes.finances import router as finances_router
 from app.api.routes.insights import router as insights_router
+from app.api.routes.storage import router as storage_router
 
 api_router = APIRouter(prefix="/api")
 api_router.include_router(auth_router)
@@ -45,5 +46,6 @@ api_router.include_router(modes_router)
 api_router.include_router(workouts_router)
 api_router.include_router(finances_router)
 api_router.include_router(insights_router)
+api_router.include_router(storage_router)
 
 __all__ = ["api_router"]

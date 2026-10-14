@@ -1,8 +1,6 @@
-import asyncio
 import json
 import pytest
 from datetime import datetime, timedelta, timezone
-from zoneinfo import ZoneInfo
 from unittest.mock import AsyncMock, MagicMock
 
 from app.database.connection import DatabaseManager
@@ -128,7 +126,7 @@ async def test_user_modes_suppression(prod_repo_s8, user_repo_s8):
     assert modes["sick"] is False
 
     # Clear
-    cleared = await prod_repo_s8.clear_modes(user.id)
+    await prod_repo_s8.clear_modes(user.id)
     modes2 = await prod_repo_s8.get_active_modes(user.id)
     assert modes2["dnd"] is False
 

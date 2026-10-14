@@ -14,6 +14,7 @@ services:
     environment:
       - PYTHONUNBUFFERED=1
       - DATABASE_PATH=/app/data/bot.db
+    mem_limit: 256m
     logging:
       driver: "json-file"
       options:

@@ -408,7 +408,7 @@ class WorkoutService:
                 '</svg>'
             )
 
-        weights = [l["weight_kg"] for l in logs]
+        weights = [entry["weight_kg"] for entry in logs]
         min_w = max(0, min(weights) - 5)
         max_w = max(weights) + 5
         span_w = max(1.0, max_w - min_w)
@@ -422,17 +422,17 @@ class WorkoutService:
         dots = []
         n = len(logs)
 
-        for i, l in enumerate(logs):
+        for i, entry in enumerate(logs):
             x = margin_x + (i * (width - 2 * margin_x) / max(1, n - 1))
             # Invert y: larger weight is higher (smaller y)
-            y = margin_y + (height - 2 * margin_y) * (1.0 - (l["weight_kg"] - min_w) / span_w)
+            y = margin_y + (height - 2 * margin_y) * (1.0 - (entry["weight_kg"] - min_w) / span_w)
             points.append(f"{x:.1f},{y:.1f}")
 
-            dot_color = "#f59e0b" if l.get("is_pr") else "#3b82f6"
-            dot_r = "6" if l.get("is_pr") else "4"
+            dot_color = "#f59e0b" if entry.get("is_pr") else "#3b82f6"
+            dot_r = "6" if entry.get("is_pr") else "4"
             dots.append(
                 f'<circle cx="{x:.1f}" cy="{y:.1f}" r="{dot_r}" fill="{dot_color}" stroke="#fff" stroke-width="1.5"/>'
-                f'<text x="{x:.1f}" y="{y - 8:.1f}" fill="#fff" font-size="10" text-anchor="middle">{l["weight_kg"]}</text>'
+                f'<text x="{x:.1f}" y="{y - 8:.1f}" fill="#fff" font-size="10" text-anchor="middle">{entry["weight_kg"]}</text>'
             )
 
         polyline = " ".join(points)

@@ -1,5 +1,5 @@
 from datetime import datetime, timedelta
-from typing import Dict, Any, List, Optional
+from typing import Dict, Any
 from zoneinfo import ZoneInfo
 from app.database.repositories.user_repository import UserRepository
 from app.database.repositories.food_repository import FoodRepository

@@ -1,8 +1,7 @@
-import json
 import logging
 from datetime import datetime, timedelta
 from typing import List, Optional, Dict, Any
-from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
+from zoneinfo import ZoneInfo
 
 from app.database.connection import DatabaseManager
 

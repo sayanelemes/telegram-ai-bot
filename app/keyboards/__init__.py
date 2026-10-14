@@ -28,4 +28,5 @@ __all__ = [
     "get_timezone_keyboard",
     "get_profile_keyboard",
     "get_profile_edit_fields_keyboard",
+    "get_webapp_inline_keyboard",
 ]

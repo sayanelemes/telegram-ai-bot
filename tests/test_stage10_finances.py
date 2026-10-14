@@ -1,5 +1,5 @@
 import pytest
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timedelta
 from unittest.mock import AsyncMock, MagicMock
 from httpx import AsyncClient, ASGITransport
 from zoneinfo import ZoneInfo
@@ -110,7 +110,7 @@ async def test_savings_goal_crud_and_forecast(finance_repo_s10, user_repo_s10):
 async def test_subscriptions_lifecycle_and_due_detection(finance_repo_s10, user_repo_s10):
     user = await user_repo_s10.get_or_create_user(telegram_id=10002, timezone="Asia/Almaty")
 
-    today_str = datetime.utcnow().strftime("%Y-%m-%d")
+    datetime.utcnow().strftime("%Y-%m-%d")
     tomorrow_str = (datetime.utcnow() + timedelta(days=1)).strftime("%Y-%m-%d")
     next_week_str = (datetime.utcnow() + timedelta(days=7)).strftime("%Y-%m-%d")
 

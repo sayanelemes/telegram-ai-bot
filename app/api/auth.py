@@ -6,8 +6,9 @@ import time
 import random
 import urllib.parse
 import logging
+import sqlite3
 from typing import Optional, Dict, Any
-from fastapi import Header, HTTPException, status, Depends, Query
+from fastapi import Header, HTTPException, status
 from app.config.settings import settings
 from app.database.models import UserDB
 from app.database.repositories.user_repository import UserRepository
@@ -61,8 +62,6 @@ def validate_auth_token(token: str, bot_token: str = settings.BOT_TOKEN) -> Opti
         logger.debug(f"Standalone token validation exception: {e}")
         return None
 
-
-import sqlite3
 
 def create_login_code(telegram_id: int, expires_minutes: int = 30) -> str:
     """

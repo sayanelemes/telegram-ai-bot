@@ -1,6 +1,5 @@
 from datetime import datetime
 from typing import List, Optional, Dict, Any
-import aiosqlite
 from app.database.connection import DatabaseManager
 from app.database.models import ReminderDB
 

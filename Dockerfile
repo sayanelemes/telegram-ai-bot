@@ -1,14 +1,19 @@
 # ==============================================================================
-# Stage 1: Build Telegram Mini App (Frontend)
+# Stage 1: Build Dependencies
 # ==============================================================================
-FROM node:22-alpine AS frontend-builder
+FROM python:3.12-slim AS builder
+
 WORKDIR /build
 
-COPY webapp/package*.json ./
-RUN npm ci || npm install
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    gcc \
+    libjpeg-dev \
+    zlib1g-dev \
+    && rm -rf /var/lib/apt/lists/*
 
-COPY webapp/ ./
-RUN npm run build
+COPY requirements.txt .
+RUN pip install --no-cache-dir --upgrade pip && \
+    pip install --no-cache-dir --prefix=/install -r requirements.txt
 
 # ==============================================================================
 # Stage 2: Production Python Backend & Bot Runner
@@ -22,25 +27,20 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 WORKDIR /app
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    gcc \
-    libjpeg-dev \
-    zlib1g-dev \
     curl \
+    sqlite3 \
     && rm -rf /var/lib/apt/lists/*
 
-COPY requirements.txt .
-RUN pip install --no-cache-dir --upgrade pip && \
-    pip install --no-cache-dir -r requirements.txt
+# Copy installed python packages from builder stage
+COPY --from=builder /install /usr/local
 
-# Copy application source code
+# Copy application source code and pre-built zero-build webapp
 COPY app/ ./app/
 COPY scripts/ ./scripts/
+COPY webapp/dist/ ./webapp/dist/
 COPY README.md .
 
-# Copy built frontend assets from builder stage
-COPY --from=frontend-builder /build/dist ./webapp/dist
-
-# Create database and uploads directory
+# Create database directory
 RUN mkdir -p /app/data
 
 EXPOSE 8000

@@ -1,7 +1,7 @@
 import pytest
 from httpx import AsyncClient, ASGITransport
 from app.keyboards.inline import get_webapp_inline_keyboard
-from app.handlers.short_links import cmd_stats, cmd_tasks, cmd_storage
+from app.handlers.short_links import cmd_stats, cmd_tasks
 from unittest.mock import AsyncMock
 
 

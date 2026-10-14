@@ -2,12 +2,11 @@ import re
 import uuid
 import logging
 from datetime import datetime
-from typing import List, Optional, Tuple, Dict, Any
+from typing import List, Optional
 from zoneinfo import ZoneInfo
 from pydantic import BaseModel, Field
 from google.genai import types
 
-from app.config.settings import settings
 from app.services.gemini import GeminiService, GeminiServiceError
 from app.database.connection import DatabaseManager
 from app.utils.formatters import format_currency, format_number

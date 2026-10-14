@@ -1,6 +1,6 @@
 import json
 import logging
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timedelta
 from typing import Dict, Any, List, Optional
 from pydantic import BaseModel, Field
 
@@ -328,7 +328,7 @@ class InsightsService:
         async with self.db.get_connection() as conn:
             cur = await conn.execute(
                 """
-                SELECT 
+                SELECT
                     COALESCE(SUM(CASE WHEN is_impulse = 1 OR category = 'snacks' THEN amount ELSE 0 END), 0.0) as snacks_total,
                     COALESCE(SUM(CASE WHEN is_impulse = 0 AND (category = 'food' OR category = 'groceries') THEN amount ELSE 0 END), 0.0) as home_food_total
                 FROM expenses

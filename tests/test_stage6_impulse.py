@@ -7,8 +7,7 @@ from datetime import datetime
 from zoneinfo import ZoneInfo
 from httpx import AsyncClient, ASGITransport
 
-from app.database.models import UserDB, ExpenseDB, ExpenseItemDB
-from app.database.repositories import ExpenseRepository
+from app.database.models import ExpenseDB
 
 
 def make_valid_init_data(bot_token: str, user_id: int = 9301, first_name: str = "ImpulseUser") -> str:
@@ -176,7 +175,7 @@ async def test_bot_link_id_impulse_toggle(app_instance, user_repo, expense_repo)
     user = await user_repo.get_or_create_user(telegram_id=user_id)
     today_str = datetime.utcnow().strftime("%Y-%m-%d")
 
-    exp = await expense_repo.create_expense(ExpenseDB(
+    await expense_repo.create_expense(ExpenseDB(
         user_id=user.id,
         merchant="Snack Bar",
         amount=800.0,

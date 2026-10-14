@@ -1,7 +1,6 @@
 import asyncio
 import pytest
 from app.services.reminders import ReminderService
-from app.database.models import ReminderDB
 
 
 @pytest.mark.asyncio

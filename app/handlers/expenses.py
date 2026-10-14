@@ -13,7 +13,6 @@ from app.services.gemini import GeminiService, GeminiServiceError, ReceiptAnalys
 from app.services.image import ImageProcessingService, InvalidImageError
 from app.services.expenses import ExpenseService
 from app.states.user_states import ExpenseInputStates
-from app.keyboards.reply import get_main_menu_keyboard, get_cancel_reply_keyboard
 from app.keyboards.inline import get_expense_confirm_keyboard
 from app.utils.formatters import format_currency, format_number
 from app.config.settings import settings
