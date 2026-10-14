@@ -580,22 +580,37 @@ const app = {
     });
 
     if (res && card) {
+      if (res.error) {
+        card.innerHTML = `<div class="alert-box alert-warning">⚠️ ${res.message || "Не удалось сгенерировать рецепт. Попробуйте еще раз."}</div>`;
+        return;
+      }
+      const cals = res.calories || res.total_calories || 0;
+      const prot = res.protein_g || res.total_protein || 0;
+      const fat = res.fat_g || res.total_fat || 0;
+      const carbs = res.carbs_g || res.total_carbs || 0;
+      const name = res.name || "Блюдо для набора";
+      const cost = res.estimated_cost || 0;
+      const time = res.cooking_time_minutes || 10;
+      const utensils = (res.utensils && res.utensils.length) ? res.utensils.join(", ") : "1 посуда";
+      const instructions = res.instructions || res.steps || [];
+
       card.innerHTML = `
         <div class="card-header">
-          <span class="card-title">🍳 ${res.name}</span>
-          <span class="badge-tag">~${res.estimated_cost || 900} ₸ · ⏱ ${res.cooking_time_minutes || 10} мин</span>
+          <span class="card-title">🍳 ${name}</span>
+          <span class="badge-tag">~${cost} ₸ · ⏱ ${time} мин</span>
         </div>
-        <div style="font-size: 12px; margin-bottom: 8px;">
-          <b>${res.total_calories} ккал</b> (🥩 ${res.total_protein}г · 🥑 ${res.total_fat}г · 🍚 ${res.total_carbs}г) · 🍳 ${res.utensils_count || 1} посуда
+        <div style="font-size: 13px; margin-bottom: 10px;">
+          <b>${cals} ккал</b> (🥩 ${prot}г · 🥑 ${fat}г · 🍚 ${carbs}г) · 🍳 ${utensils}
         </div>
+        ${res.high_calorie_bulking_tip ? `<div class="alert-box" style="background-color: rgba(59, 130, 246, 0.1); border: 1px solid rgba(59, 130, 246, 0.2); color: #93c5fd; margin-bottom: 10px;">💡 <b>Лайфхак:</b> ${res.high_calorie_bulking_tip}</div>` : ""}
         <div class="items-list" style="margin-bottom: 10px;">
-          ${(res.ingredients || []).map(i => `<div style="font-size: 12px;">• ${i.name} — ${i.calories} ккал</div>`).join("")}
+          ${(res.ingredients || []).map(i => `<div style="font-size: 12px; color: var(--text-color);">• <b>${i.name}</b> ${i.amount || (i.grams ? i.grams + 'г' : '')}</div>`).join("")}
         </div>
-        <div style="font-size: 12px; color: var(--text-secondary); margin-bottom: 12px;">
-          ${(res.steps || []).map((s, idx) => `<div>${idx + 1}. ${s}</div>`).join("")}
+        <div style="font-size: 12px; color: var(--text-secondary); margin-bottom: 12px; line-height: 1.5;">
+          ${instructions.map((s, idx) => `<div>${idx + 1}. ${s}</div>`).join("")}
         </div>
         <div style="display: flex; gap: 8px;">
-          <button class="btn-primary btn-sm" onclick="app.quickLogRecipe(${res.total_calories}, '${res.name}')">✅ Съел это (+${res.total_calories} ккал)</button>
+          <button class="btn-primary btn-sm" onclick="app.quickLogRecipe(${cals}, '${name.replace(/'/g, "\\'")}')">✅ Съел это (+${cals} ккал)</button>
           <button class="btn-secondary btn-sm" onclick="app.suggestRecipe()">🔄 Другой</button>
         </div>
       `;

@@ -397,7 +397,10 @@ body {
 }
 
 /* Buttons */
-button {
+.btn-primary,
+.btn-secondary,
+.btn-sm,
+.btn-text {
   font-size: 13px;
   font-weight: 600;
   cursor: pointer;
@@ -405,9 +408,11 @@ button {
   border-radius: 8px;
   padding: 8px 14px;
   transition: opacity 0.2s;
+  font-family: inherit;
 }
 
-button:active {
+.btn-primary:active,
+.btn-secondary:active {
   opacity: 0.8;
 }
 
@@ -707,8 +712,10 @@ button:active {
 }
 
 .nav-tab {
-  background: none;
-  border: none;
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  border-radius: 0 !important;
   color: var(--text-secondary);
   display: flex;
   flex-direction: column;
@@ -716,6 +723,8 @@ button:active {
   justify-content: center;
   gap: 3px;
   padding: 4px 0;
+  cursor: pointer;
+  outline: none;
 }
 
 .nav-tab span {

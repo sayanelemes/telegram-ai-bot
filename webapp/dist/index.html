@@ -9,7 +9,7 @@
   <title>Bulking Super-App</title>
   <link rel="manifest" href="/manifest.json">
   <link rel="apple-touch-icon" href="/apple-touch-icon.png">
-  <link rel="stylesheet" href="/style.css?v=2">
+  <link rel="stylesheet" href="/style.css?v=3">
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
 </head>
 <body class="dark-theme">
@@ -81,19 +81,16 @@
           </div>
         </div>
 
-        <!-- Quick Actions Row -->
+        <!-- Quick Actions Row: Clean & minimal -->
         <div class="quick-actions-row">
           <button class="quick-chip" id="action-add-water">💧 +250 мл</button>
-          <button class="quick-chip" onclick="app.addWater(500)">💧 +500 мл</button>
           <button class="quick-chip" id="action-add-weight">⚖️ Вес</button>
-          <button class="quick-chip" id="action-recipe-quick">🍳 Рецепт</button>
         </div>
 
         <!-- Meals Eaten Today -->
         <div class="card">
           <div class="card-header">
-            <span class="card-title">🍽 Съедено за сегодня</span>
-            <button class="btn-secondary btn-sm" onclick="app.repeatYesterday()">🔁 Повторить вчера</button>
+            <span class="card-title">🍽 Съедено сегодня</span>
           </div>
           <div id="today-food-entries" class="entries-list"></div>
         </div>
@@ -119,8 +116,6 @@
           <button class="sub-nav-btn active" onclick="app.switchFoodSub('diary')">Дневник</button>
           <button class="sub-nav-btn" onclick="app.switchFoodSub('recipe')">Рецепты</button>
           <button class="sub-nav-btn" onclick="app.switchFoodSub('pantry')">Кладовая</button>
-          <button class="sub-nav-btn" onclick="app.switchFoodSub('plan')">План недели</button>
-          <button class="sub-nav-btn" onclick="app.switchFoodSub('custom')">Мои блюда</button>
         </div>
 
         <!-- Food Diary Sub -->
@@ -408,7 +403,7 @@
 
     <!-- Unified Bottom Input Bar -->
     <div class="bottom-input-bar">
-      <input type="file" id="camera-file-input" accept="image/*" class="hidden" capture="environment">
+      <input type="file" id="camera-file-input" accept="image/*" style="display: none !important;" capture="environment">
       <button id="btn-camera" class="btn-input-icon" title="Сфотографировать еду или чек">
         <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
       </button>
@@ -458,6 +453,6 @@
 
   </div>
 
-  <script src="/app.js?v=2"></script>
+  <script src="/app.js?v=3"></script>
 </body>
 </html>
