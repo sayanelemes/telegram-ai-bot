@@ -200,8 +200,14 @@ async def get_current_user_from_init_data(
     if init_data:
         user_info = validate_telegram_init_data(init_data, settings.BOT_TOKEN)
 
-    # 3. Allow X-Dev-User-Id strictly for testing/dev if bot token is mock/test
-    if not user_info and x_dev_user_id and (settings.BOT_TOKEN.startswith("mock") or "test" in settings.BOT_TOKEN.lower()):
+    # 3. Allow X-Dev-User-Id strictly for testing/dev if bot token is mock/test or WEB_APP_URL is localhost
+    is_dev_env = (
+        settings.BOT_TOKEN.startswith("mock")
+        or "test" in settings.BOT_TOKEN.lower()
+        or "localhost" in settings.WEB_APP_URL.lower()
+        or "127.0.0.1" in settings.WEB_APP_URL.lower()
+    )
+    if not user_info and x_dev_user_id and is_dev_env:
         try:
             user_info = {"id": int(x_dev_user_id), "first_name": "Dev User", "username": "dev_user"}
         except ValueError:
