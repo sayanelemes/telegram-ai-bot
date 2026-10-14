@@ -596,14 +596,16 @@ body {
 /* Floating Undo Toast */
 .undo-toast {
   position: fixed;
-  bottom: calc(var(--bottom-bar-height) + var(--nav-bar-height) + env(safe-area-inset-bottom) + 12px);
+  bottom: calc(var(--bottom-bar-height) + var(--nav-bar-height) + env(safe-area-inset-bottom) + 16px);
   left: 16px;
   right: 16px;
-  z-index: 50;
+  max-width: 508px;
+  margin: 0 auto;
+  z-index: 70;
   background-color: #27272a;
   border: 1px solid #3f3f46;
   border-radius: 12px;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
   overflow: hidden;
   transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.3s;
 }
@@ -645,15 +647,15 @@ body {
   max-width: 540px;
   margin: 0 auto;
   height: var(--bottom-bar-height);
-  background-color: rgba(20, 20, 23, 0.95);
+  background-color: rgba(20, 20, 23, 0.98);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
   border-top: 1px solid var(--card-border);
-  display: flex;
+  display: flex !important;
   align-items: center;
   padding: 0 12px;
   gap: 8px;
-  z-index: 45;
+  z-index: 60;
 }
 
 .btn-input-icon {
