@@ -1,0 +1,506 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta name="theme-color" content="#121214">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <title>Bulking Super-App</title>
+  <link rel="manifest" href="/manifest.json">
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png">
+  <link rel="stylesheet" href="/style.css">
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+</head>
+<body class="dark-theme">
+  <!-- App Container -->
+  <div id="app" class="app-root">
+    
+    <!-- Top Header -->
+    <header class="app-header">
+      <div class="header-top">
+        <div class="user-info">
+          <div class="avatar" id="user-avatar">🏋️</div>
+          <div>
+            <h1 class="user-greeting" id="user-name">Привет, атлет!</h1>
+            <span class="badge-bulking" id="bulking-badge">⚡ Режим: Набор массы</span>
+          </div>
+        </div>
+        <div class="header-actions">
+          <button id="btn-sync" class="icon-btn" title="Обновить">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/></svg>
+          </button>
+        </div>
+      </div>
+
+      <!-- Global Search -->
+      <div class="search-box">
+        <svg class="search-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+        <input type="text" id="global-search" placeholder="Поиск заметок, задач, еды, расходов..." autocomplete="off">
+        <button id="search-clear" class="btn-clear hidden">&times;</button>
+      </div>
+      <div id="search-results" class="search-results-dropdown hidden"></div>
+    </header>
+
+    <!-- Main Views Container -->
+    <main id="main-content" class="content-scroll">
+      
+      <!-- TAB 1: СЕГОДНЯ -->
+      <section id="tab-today" class="tab-view active">
+        <!-- Calorie Hero Card -->
+        <div class="card hero-card">
+          <div class="hero-header">
+            <span class="card-title">🔥 Калории за день</span>
+            <span class="hero-target-pill" id="target-pill">Цель: 2 400 ккал</span>
+          </div>
+          <div class="hero-calories">
+            <div class="calorie-numbers">
+              <span class="cal-consumed" id="consumed-cal">0</span>
+              <span class="cal-sep">/</span>
+              <span class="cal-target" id="target-cal">2400</span>
+              <span class="cal-unit">ккал</span>
+            </div>
+            <div class="calorie-remaining-badge" id="remaining-badge">Осталось: 2 400 ккал</div>
+          </div>
+          <div class="progress-bar-bg">
+            <div class="progress-bar-fill" id="cal-progress-bar" style="width: 0%;"></div>
+          </div>
+          <!-- Bulking Warning -->
+          <div id="bulking-warning" class="alert-box alert-warning hidden">
+            ⚠️ <b>Внимание: недобор калорий!</b> Для роста массы необходимо закрыть минимум 90% нормы.
+          </div>
+          <!-- Macros Row -->
+          <div class="macros-grid">
+            <div class="macro-item">
+              <div class="macro-name">🥩 Белки</div>
+              <div class="macro-bar-bg"><div class="macro-bar-fill prot" id="bar-prot" style="width: 0%;"></div></div>
+              <div class="macro-val" id="val-prot">0 / 160 г</div>
+            </div>
+            <div class="macro-item">
+              <div class="macro-name">🥑 Жиры</div>
+              <div class="macro-bar-bg"><div class="macro-bar-fill fat" id="bar-fat" style="width: 0%;"></div></div>
+              <div class="macro-val" id="val-fat">0 / 80 г</div>
+            </div>
+            <div class="macro-item">
+              <div class="macro-name">🍚 Углеводы</div>
+              <div class="macro-bar-bg"><div class="macro-bar-fill carb" id="bar-carb" style="width: 0%;"></div></div>
+              <div class="macro-val" id="val-carb">0 / 300 г</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Quick Actions Row -->
+        <div class="quick-actions-row">
+          <button class="quick-chip" id="action-add-water">💧 +250 мл</button>
+          <button class="quick-chip" id="action-add-weight">⚖️ Вес</button>
+          <button class="quick-chip" id="action-recipe-quick">🍳 Рецепт</button>
+          <button class="quick-chip" id="action-add-note">📝 Заметка</button>
+        </div>
+
+        <!-- Water Tracker Card -->
+        <div class="card water-card">
+          <div class="card-header">
+            <span class="card-title">💧 Водный баланс</span>
+            <span class="water-total" id="water-total">0 / 2500 мл</span>
+          </div>
+          <div class="water-progress-bg">
+            <div class="water-progress-fill" id="water-fill" style="width: 0%;"></div>
+          </div>
+          <div class="water-buttons">
+            <button class="btn-sm" onclick="app.addWater(250)">+250 мл</button>
+            <button class="btn-sm" onclick="app.addWater(500)">+500 мл</button>
+          </div>
+        </div>
+
+        <!-- Workout of the Day Card -->
+        <div class="card" id="card-workout-today">
+          <div class="card-header">
+            <span class="card-title">💪 Тренировка сегодня</span>
+            <button class="btn-text" onclick="app.switchTab('workout')">Журнал &rarr;</button>
+          </div>
+          <div id="workout-today-info" class="text-secondary">Нет запланированных тренировок на сегодня.</div>
+        </div>
+
+        <!-- Tasks & Reminders Card -->
+        <div class="card">
+          <div class="card-header">
+            <span class="card-title">📋 Задачи и напоминания</span>
+            <button class="btn-text" onclick="app.switchTab('more')">Все &rarr;</button>
+          </div>
+          <div id="today-tasks-list" class="items-list">
+            <div class="empty-text">Все задачи выполнены! 🎉</div>
+          </div>
+        </div>
+
+        <!-- Today Expenses Summary -->
+        <div class="card">
+          <div class="card-header">
+            <span class="card-title">💰 Расходы сегодня</span>
+            <span class="money-sum" id="today-expense-sum">0 ₸</span>
+          </div>
+          <div id="today-impulse-pill" class="impulse-pill hidden">
+            🛍 Импульсивные: <span id="today-impulse-sum">0 ₸</span>
+          </div>
+          <div id="today-expense-list" class="items-list">
+            <div class="empty-text">Трат сегодня ещё не было.</div>
+          </div>
+        </div>
+
+        <!-- Insights "Что улучшить" Card -->
+        <div class="card highlight-card" id="card-insights-preview">
+          <div class="card-header">
+            <span class="card-title">💡 Что улучшить</span>
+            <button class="btn-text" onclick="app.switchTab('more', 'advice')">Подробнее &rarr;</button>
+          </div>
+          <div id="insights-preview-text" class="text-secondary">Анализируем ваш прогресс питания и тренировок...</div>
+        </div>
+      </section>
+
+      <!-- TAB 2: ЕДА -->
+      <section id="tab-food" class="tab-view">
+        <div class="sub-nav">
+          <button class="sub-nav-btn active" onclick="app.switchFoodSub('diary')">Дневник</button>
+          <button class="sub-nav-btn" onclick="app.switchFoodSub('recipe')">Рецепты</button>
+          <button class="sub-nav-btn" onclick="app.switchFoodSub('pantry')">Кладовая</button>
+          <button class="sub-nav-btn" onclick="app.switchFoodSub('plan')">План недели</button>
+          <button class="sub-nav-btn" onclick="app.switchFoodSub('custom')">Мои блюда</button>
+        </div>
+
+        <!-- Food Diary Sub -->
+        <div id="food-sub-diary" class="sub-content active">
+          <div class="card-header" style="margin-bottom: 8px;">
+            <span class="card-title">Приёмы пищи</span>
+            <button class="btn-secondary btn-sm" onclick="app.repeatYesterday()">🔁 Повторить вчера</button>
+          </div>
+          <div id="food-entries-list" class="entries-list"></div>
+        </div>
+
+        <!-- Recipe Generator Sub -->
+        <div id="food-sub-recipe" class="sub-content">
+          <div class="card">
+            <div class="card-header">
+              <span class="card-title">🍳 Генератор блюд для набора</span>
+              <span class="badge-tag">До 1 500 ₸</span>
+            </div>
+            <p class="text-secondary" style="font-size: 13px; margin-bottom: 12px;">
+              Подбирает быстрые, недорогие и калорийные блюда (шейки, творог, овсянка, сложные углеводы) под ваш остаток калорий.
+            </p>
+            <div class="recipe-action-buttons">
+              <button class="btn-primary" id="btn-recipe-remaining">Подобрать по остатку</button>
+              <button class="btn-secondary" id="btn-recipe-pantry">Из того, что дома</button>
+            </div>
+          </div>
+          <!-- Recipe Card Display -->
+          <div id="recipe-display-card" class="card hidden"></div>
+        </div>
+
+        <!-- Pantry Sub -->
+        <div id="food-sub-pantry" class="sub-content">
+          <div class="card">
+            <div class="card-header">
+              <span class="card-title">📦 Кладовая дома</span>
+            </div>
+            <div class="input-inline">
+              <input type="text" id="pantry-input" placeholder="Добавить: рис 1кг, яйца 10шт, творог...">
+              <button class="btn-primary btn-sm" onclick="app.addPantryItem()">+ Добавить</button>
+            </div>
+            <div id="pantry-list" class="tags-cloud" style="margin-top: 12px;"></div>
+          </div>
+        </div>
+
+        <!-- Weekly Plan Sub -->
+        <div id="food-sub-plan" class="sub-content">
+          <div class="card">
+            <div class="card-header">
+              <span class="card-title">📅 План питания на неделю</span>
+              <button class="btn-primary btn-sm" onclick="app.generateWeeklyPlan()">Сгенерировать</button>
+            </div>
+            <div id="weekly-plan-content" class="text-secondary">Нажмите "Сгенерировать", чтобы составить рацион под ваш целевой бюджет и норму калорий.</div>
+          </div>
+          <!-- Shopping List from Recipes -->
+          <div class="card">
+            <div class="card-header">
+              <span class="card-title">🛒 Список покупок</span>
+            </div>
+            <div id="shopping-list" class="items-list">
+              <div class="empty-text">Список покупок пуст.</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Custom Foods Sub -->
+        <div id="food-sub-custom" class="sub-content">
+          <div class="card">
+            <div class="card-header">
+              <span class="card-title">🥗 Мои блюда с КБЖУ</span>
+              <button class="btn-secondary btn-sm" onclick="app.openCustomFoodModal()">+ Своё блюдо</button>
+            </div>
+            <div id="custom-foods-list" class="items-list"></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- TAB 3: ТРЕНИРОВКИ -->
+      <section id="tab-workout" class="tab-view">
+        <div class="card">
+          <div class="card-header">
+            <span class="card-title">🏋️ Программа тренировок</span>
+            <button class="btn-secondary btn-sm" onclick="app.generateWorkoutPlan()">AI План</button>
+          </div>
+          <div id="workout-split-desc" class="text-secondary" style="margin-bottom: 8px;">Сплит на 4 дня (Грудь/Спина/Ноги/Плечи-руки).</div>
+          <div id="workout-routine-items"></div>
+        </div>
+
+        <!-- Workout Log Input -->
+        <div class="card">
+          <div class="card-header">
+            <span class="card-title">📝 Быстрая запись подхода</span>
+          </div>
+          <div class="input-inline">
+            <input type="text" id="workout-log-input" placeholder="Например: жим 60x8x3 или присед 80 на 5 по 5">
+            <button class="btn-primary btn-sm" onclick="app.saveWorkoutLog()">Записать</button>
+          </div>
+        </div>
+
+        <!-- Progression & Working Weights SVG Chart -->
+        <div class="card">
+          <div class="card-header">
+            <span class="card-title">📈 Прогресс рабочих весов</span>
+            <span class="badge-tag">+2.5 кг прогрессия</span>
+          </div>
+          <div id="weights-chart-container" class="chart-container">
+            <!-- Custom SVG Chart rendered via JS -->
+            <svg id="weights-svg" viewBox="0 0 320 120" class="svg-chart"></svg>
+          </div>
+        </div>
+
+        <!-- Personal Records & Supplements -->
+        <div class="card">
+          <div class="card-header">
+            <span class="card-title">🏆 Личные рекорды (PR)</span>
+          </div>
+          <div id="prs-list" class="items-list">
+            <div class="empty-text">Рекорды появятся после тренировок!</div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-header">
+            <span class="card-title">💊 Добавки (Креатин & Протеин)</span>
+            <button class="btn-sm btn-secondary" onclick="app.checkSupplementsToday()">✅ Принял всё</button>
+          </div>
+          <div id="supplements-list" class="items-list"></div>
+        </div>
+      </section>
+
+      <!-- TAB 4: ДЕНЬГИ -->
+      <section id="tab-money" class="tab-view">
+        <!-- Expenses Overview -->
+        <div class="card">
+          <div class="card-header">
+            <span class="card-title">💳 Расходы за месяц</span>
+            <button class="btn-text" onclick="app.exportExpensesCSV()">📥 Экспорт CSV</button>
+          </div>
+          <div class="money-hero-sum" id="month-expense-sum">0 ₸</div>
+          <!-- Impulse spending ring -->
+          <div class="impulse-ring-section">
+            <div class="impulse-ring-info">
+              <span class="impulse-title">🛍 Импульсивные траты</span>
+              <span class="impulse-stat" id="impulse-stats-text">0 ₸ (0%, 0 покупок)</span>
+            </div>
+            <div class="progress-bar-bg" style="margin-top: 6px;">
+              <div class="progress-bar-fill impulse-fill" id="impulse-progress-bar" style="width: 0%;"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Category Budgets -->
+        <div class="card">
+          <div class="card-header">
+            <span class="card-title">📊 Бюджеты по категориям</span>
+            <button class="btn-sm btn-secondary" onclick="app.openBudgetSettings()">Лимиты</button>
+          </div>
+          <div id="category-budgets-list" class="items-list"></div>
+        </div>
+
+        <!-- Savings Goals, Subscriptions, Debts -->
+        <div class="card">
+          <div class="card-header">
+            <span class="card-title">🎯 Цели накопления</span>
+            <button class="btn-sm btn-secondary" onclick="app.openSavingsModal()">+ Цель</button>
+          </div>
+          <div id="savings-goals-list" class="items-list"></div>
+        </div>
+
+        <div class="card">
+          <div class="card-header">
+            <span class="card-title">🔄 Подписки</span>
+            <button class="btn-sm btn-secondary" onclick="app.openSubscriptionModal()">+ Подписка</button>
+          </div>
+          <div id="subscriptions-list" class="items-list"></div>
+        </div>
+
+        <div class="card">
+          <div class="card-header">
+            <span class="card-title">🤝 Долги</span>
+            <button class="btn-sm btn-secondary" onclick="app.openDebtModal()">+ Долг</button>
+          </div>
+          <div id="debts-list" class="items-list"></div>
+        </div>
+      </section>
+
+      <!-- TAB 5: ЕЩЁ -->
+      <section id="tab-more" class="tab-view">
+        <!-- Tasks Module -->
+        <div class="card">
+          <div class="card-header">
+            <span class="card-title">📋 Задачи</span>
+            <button class="btn-sm btn-secondary" onclick="app.openAddTaskModal()">+ Задача</button>
+          </div>
+          <div id="all-tasks-list" class="items-list"></div>
+        </div>
+
+        <!-- Notes Module -->
+        <div class="card">
+          <div class="card-header">
+            <span class="card-title">📝 Заметки</span>
+            <button class="btn-sm btn-secondary" onclick="app.openAddNoteModal()">+ Заметка</button>
+          </div>
+          <div id="all-notes-list" class="notes-grid"></div>
+        </div>
+
+        <!-- Habits & Check-in -->
+        <div class="card">
+          <div class="card-header">
+            <span class="card-title">🌱 Привычки & Серии</span>
+          </div>
+          <div id="habits-list" class="items-list"></div>
+          <!-- Evening Check-in -->
+          <div class="checkin-box">
+            <div class="checkin-title">🌙 Вечерний чек-ин: Энергия и Настроение</div>
+            <div class="rating-row">
+              <span class="rating-label">Энергия:</span>
+              <div class="rating-stars" id="energy-stars">
+                <button onclick="app.setCheckin('energy', 1)">1</button>
+                <button onclick="app.setCheckin('energy', 2)">2</button>
+                <button onclick="app.setCheckin('energy', 3)">3</button>
+                <button onclick="app.setCheckin('energy', 4)">4</button>
+                <button onclick="app.setCheckin('energy', 5)">5</button>
+              </div>
+            </div>
+            <div class="rating-row" style="margin-top: 6px;">
+              <span class="rating-label">Настроение:</span>
+              <div class="rating-stars" id="mood-stars">
+                <button onclick="app.setCheckin('mood', 1)">1</button>
+                <button onclick="app.setCheckin('mood', 2)">2</button>
+                <button onclick="app.setCheckin('mood', 3)">3</button>
+                <button onclick="app.setCheckin('mood', 4)">4</button>
+                <button onclick="app.setCheckin('mood', 5)">5</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- AI Recommendations & Advisor -->
+        <div class="card" id="module-advice">
+          <div class="card-header">
+            <span class="card-title">💡 Советы недели ("Что улучшить")</span>
+            <button class="btn-sm btn-primary" onclick="app.requestAdvice()">Анализ</button>
+          </div>
+          <div id="advice-list" class="advice-cards-container">
+            <div class="text-secondary">Советы формируются на основе данных за 14+ дней.</div>
+          </div>
+        </div>
+
+        <!-- Settings & System -->
+        <div class="card">
+          <div class="card-header">
+            <span class="card-title">⚙️ Настройки и Режимы</span>
+          </div>
+          <div class="settings-list">
+            <div class="setting-item">
+              <span>Режим "Не беспокоить сегодня"</span>
+              <input type="checkbox" id="mode-dnd" onchange="app.toggleMode('dnd')">
+            </div>
+            <div class="setting-item">
+              <span>Режим "Болею / Путешествую"</span>
+              <input type="checkbox" id="mode-sick" onchange="app.toggleMode('sick')">
+            </div>
+            <div class="setting-item">
+              <span>Тренировочный день (+10% калорий)</span>
+              <input type="checkbox" id="mode-workout-surplus" checked onchange="app.toggleWorkoutSurplus()">
+            </div>
+            <div class="setting-item">
+              <span>Управление хранилищем (/storage)</span>
+              <button class="btn-sm btn-secondary" onclick="app.openStorageModal()">Проверить</button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+    </main>
+
+    <!-- Floating 5s Undo Toast -->
+    <div id="undo-toast" class="undo-toast hidden">
+      <div class="undo-content">
+        <span id="undo-message">Запись сохранена</span>
+        <button id="btn-undo-action" class="btn-undo">↩️ Отменить</button>
+      </div>
+      <div class="undo-timer-bar"><div id="undo-timer-fill" class="undo-timer-fill"></div></div>
+    </div>
+
+    <!-- Unified Bottom Input Bar -->
+    <div class="bottom-input-bar">
+      <input type="file" id="camera-file-input" accept="image/*" class="hidden" capture="environment">
+      <button id="btn-camera" class="btn-input-icon" title="Сфотографировать еду или чек">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+      </button>
+      <button id="btn-mic" class="btn-input-icon" title="Голосовой ввод">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
+      </button>
+      <input type="text" id="unified-text-input" placeholder="Например: кофе 1200 тг или 2 яйца..." autocomplete="off">
+      <button id="btn-send" class="btn-send-icon" title="Отправить">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+      </button>
+    </div>
+
+    <!-- Bottom 5-Tab Navigation -->
+    <nav class="bottom-nav">
+      <button class="nav-tab active" data-tab="today" onclick="app.switchTab('today')">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+        <span>Сегодня</span>
+      </button>
+      <button class="nav-tab" data-tab="food" onclick="app.switchTab('food')">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8h1a4 4 0 0 1 0 8h-1"/><path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z"/><line x1="6" y1="1" x2="6" y2="4"/><line x1="10" y1="1" x2="10" y2="4"/><line x1="14" y1="1" x2="14" y2="4"/></svg>
+        <span>Еда</span>
+      </button>
+      <button class="nav-tab" data-tab="workout" onclick="app.switchTab('workout')">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 4v16"/><path d="M18 4v16"/><path d="M2 8v8"/><path d="M22 8v8"/><line x1="2" y1="12" x2="22" y2="12"/></svg>
+        <span>Тренировки</span>
+      </button>
+      <button class="nav-tab" data-tab="money" onclick="app.switchTab('money')">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="4" width="20" height="16" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>
+        <span>Деньги</span>
+      </button>
+      <button class="nav-tab" data-tab="more" onclick="app.switchTab('more')">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg>
+        <span>Ещё</span>
+      </button>
+    </nav>
+
+    <!-- General Modal Dialog Container -->
+    <div id="app-modal" class="modal-overlay hidden">
+      <div class="modal-card">
+        <div class="modal-header">
+          <h3 id="modal-title">Диалог</h3>
+          <button class="btn-close" onclick="app.closeModal()">&times;</button>
+        </div>
+        <div id="modal-body" class="modal-body"></div>
+      </div>
+    </div>
+
+  </div>
+
+  <script src="/app.js"></script>
+</body>
+</html>

@@ -16,7 +16,6 @@ htmlcov/
 
 # Node / Frontend
 webapp/node_modules/
-webapp/dist/
 webapp/.vite/
 npm-debug.log*
 

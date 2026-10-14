@@ -33,7 +33,9 @@ __pycache__/
 .Python
 build/
 develop-eggs/
-dist/
+/dist/
+!webapp/dist/
+!webapp/dist/**
 downloads/
 eggs/
 .eggs/
@@ -56,7 +58,7 @@ env/
 # ==============================================================================
 node_modules/
 webapp/node_modules/
-webapp/dist/
+# webapp/dist is the zero-build production app, must be tracked
 webapp/.vite/
 npm-debug.log*
 yarn-debug.log*
