@@ -13,6 +13,8 @@ services:
       - PYTHONUNBUFFERED=1
       - DATABASE_PATH=/app/data/bot.db
     mem_limit: 256m
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     logging:
       driver: "json-file"
       options:
