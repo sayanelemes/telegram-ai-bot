@@ -1,12 +1,24 @@
 {$DOMAIN:localhost} {
     reverse_proxy app:8000
 
+    # Compression (gzip and zstandard)
     encode gzip zstd
 
+    # Static asset caching
+    @static {
+        path /assets/* *.js *.css *.png *.svg *.ico *.woff2 *.json *.webp
+    }
+    header @static {
+        Cache-Control "public, max-age=31536000, immutable"
+    }
+
+    # Security headers
     header {
         Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
         X-Content-Type-Options "nosniff"
+        X-Frame-Options "SAMEORIGIN"
         X-XSS-Protection "1; mode=block"
+        Referrer-Policy "strict-origin-when-cross-origin"
     }
 
     log {
