@@ -1,6 +1,6 @@
 import logging
 from typing import Optional, List
-from fastapi import APIRouter, Depends, HTTPException, Body, UploadFile, File, Form
+from fastapi import APIRouter, Depends, HTTPException, Request
 from pydantic import BaseModel, Field
 
 from app.database.models import UserDB
@@ -40,55 +40,56 @@ def get_smart_input_service(
 
 @router.post("", response_model=ProcessedInputOutcome)
 async def process_unified_input(
-    payload: Optional[TextInputRequest] = Body(None),
-    file: Optional[UploadFile] = File(None),
-    text_form: Optional[str] = Form(None),
+    request: Request,
     current_user: UserDB = Depends(get_current_user),
     service: SmartInputService = Depends(get_smart_input_service),
     gemini: GeminiService = Depends(get_gemini_service),
 ):
     """
     Unified smart input endpoint.
-    Accepts text, image (photo of food or receipt), or audio recording.
+    Accepts application/json ({text: "..."}) or multipart/form-data (file, text).
     """
-    raw_text = payload.text if payload else (text_form or "")
+    raw_text = ""
+    content_type = request.headers.get("content-type", "")
 
-    # If file is attached (image or audio)
-    if file:
-        content_bytes = await file.read()
-        mime_type = file.content_type or "image/jpeg"
-
-        if mime_type.startswith("audio/"):
-            # Audio transcription fallback
-            try:
-                # Transcribe with Gemini
-                from google.genai import types
-                audio_part = types.Part.from_bytes(data=content_bytes, mime_type=mime_type)
-                prompt = "Транскрибируй аудиозапись в чистый русский текст. Напиши только распознанный текст без пояснений."
-                config = types.GenerateContentConfig(thinking_config=types.ThinkingConfig(thinking_budget=0))
-                resp = await gemini._generate_with_fallback([audio_part, prompt], config=config, user_id=current_user.id)
-                raw_text = (resp.text or "").strip()
-            except Exception as e:
-                logger.error(f"Voice transcription error: {e}")
-                raise HTTPException(status_code=400, detail="Не удалось распознать голосовое сообщение.")
-        else:
-            # Image uploaded via unified input bar
-            image_service = ImageProcessingService()
-            processed_bytes, _ = image_service.process_image_bytes(content_bytes)
-
-            # Analyze image as food first, fallback to receipt
-            try:
-                food_res = await gemini.analyze_food(processed_bytes, mime_type="image/jpeg", user_id=current_user.id)
-                # Format as items
-                text_equiv = f"Съел {food_res.meal_name}: " + ", ".join(f"{it.name} {it.portion_g}г" for it in food_res.items)
-                raw_text = text_equiv
-            except Exception:
+    if "multipart/form-data" in content_type:
+        form = await request.form()
+        text_val = form.get("text")
+        raw_text = str(text_val) if text_val else ""
+        file_val = form.get("file")
+        if file_val and hasattr(file_val, "read"):
+            content_bytes = await file_val.read()
+            mime_type = getattr(file_val, "content_type", "") or "image/jpeg"
+            if mime_type.startswith("audio/"):
                 try:
-                    rec_res = await gemini.analyze_receipt(processed_bytes, mime_type="image/jpeg", user_id=current_user.id)
-                    text_equiv = f"Покупка в {rec_res.merchant} на сумму {rec_res.total_amount} {rec_res.currency}"
-                    raw_text = text_equiv
-                except Exception as ex:
-                    raise HTTPException(status_code=400, detail=f"Не удалось распознать фото: {ex}")
+                    from google.genai import types
+                    audio_part = types.Part.from_bytes(data=content_bytes, mime_type=mime_type)
+                    prompt = "Транскрибируй аудиозапись в чистый русский текст. Напиши только распознанный текст без пояснений."
+                    config = types.GenerateContentConfig(thinking_config=types.ThinkingConfig(thinking_budget=0))
+                    resp = await gemini._generate_with_fallback([audio_part, prompt], config=config, user_id=current_user.id)
+                    raw_text = (resp.text or "").strip()
+                except Exception as e:
+                    logger.error(f"Voice transcription error: {e}")
+                    raise HTTPException(status_code=400, detail="Не удалось распознать голосовое сообщение.")
+            else:
+                image_service = ImageProcessingService()
+                processed_bytes, _ = image_service.process_image_bytes(content_bytes)
+                try:
+                    food_res = await gemini.analyze_food(processed_bytes, mime_type="image/jpeg", user_id=current_user.id)
+                    raw_text = f"Съел {food_res.meal_name}: " + ", ".join(f"{it.name} {it.portion_g}г" for it in food_res.items)
+                except Exception:
+                    try:
+                        rec_res = await gemini.analyze_receipt(processed_bytes, mime_type="image/jpeg", user_id=current_user.id)
+                        raw_text = f"Покупка в {rec_res.merchant} на сумму {rec_res.total_amount} {rec_res.currency}"
+                    except Exception as ex:
+                        raise HTTPException(status_code=400, detail=f"Не удалось распознать фото: {ex}")
+    else:
+        # JSON body: {"text": "2 яйца"}
+        try:
+            body = await request.json()
+            raw_text = body.get("text", "")
+        except Exception:
+            raw_text = ""
 
     if not raw_text.strip():
         raise HTTPException(status_code=400, detail="Текст или файл не переданы.")
