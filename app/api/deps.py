@@ -17,16 +17,21 @@ from app.services import (
 )
 from app.api.auth import get_current_user_from_init_data
 
+from app.database.repositories.productivity_repository import ProductivityRepository
+from app.services.unified_scheduler import UnifiedSchedulerService
+
 # Singleton references set during app startup
 _db_manager: Optional[DatabaseManager] = None
 _user_repo: Optional[UserRepository] = None
 _food_repo: Optional[FoodRepository] = None
 _expense_repo: Optional[ExpenseRepository] = None
 _reminder_repo: Optional[ReminderRepository] = None
+_productivity_repo: Optional[ProductivityRepository] = None
 _nutrition_service: Optional[NutritionService] = None
 _gemini_service: Optional[GeminiService] = None
 _expense_service: Optional[ExpenseService] = None
 _reminder_service: Optional[ReminderService] = None
+_unified_scheduler_service: Optional[UnifiedSchedulerService] = None
 
 
 def setup_dependencies(
@@ -39,24 +44,40 @@ def setup_dependencies(
     gemini_service: GeminiService,
     expense_service: ExpenseService,
     reminder_service: ReminderService,
+    productivity_repo: Optional[ProductivityRepository] = None,
+    unified_scheduler_service: Optional[UnifiedSchedulerService] = None,
 ) -> None:
-    global _db_manager, _user_repo, _food_repo, _expense_repo, _reminder_repo
-    global _nutrition_service, _gemini_service, _expense_service, _reminder_service
+    global _db_manager, _user_repo, _food_repo, _expense_repo, _reminder_repo, _productivity_repo
+    global _nutrition_service, _gemini_service, _expense_service, _reminder_service, _unified_scheduler_service
 
     _db_manager = db_manager
     _user_repo = user_repo
     _food_repo = food_repo
     _expense_repo = expense_repo
     _reminder_repo = reminder_repo
+    _productivity_repo = productivity_repo or ProductivityRepository(db_manager)
     _nutrition_service = nutrition_service
     _gemini_service = gemini_service
     _expense_service = expense_service
     _reminder_service = reminder_service
+    _unified_scheduler_service = unified_scheduler_service
 
 
 def get_db_manager() -> DatabaseManager:
     assert _db_manager is not None, "DatabaseManager not initialized"
     return _db_manager
+
+
+def get_productivity_repo() -> ProductivityRepository:
+    global _productivity_repo
+    if _productivity_repo is None and _db_manager is not None:
+        _productivity_repo = ProductivityRepository(_db_manager)
+    assert _productivity_repo is not None, "ProductivityRepository not initialized"
+    return _productivity_repo
+
+
+def get_unified_scheduler_service() -> Optional[UnifiedSchedulerService]:
+    return _unified_scheduler_service
 
 
 def get_user_repo() -> UserRepository:

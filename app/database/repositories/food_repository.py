@@ -100,6 +100,50 @@ class FoodRepository:
                 entries.append(FoodEntryDB(**d))
             return entries
 
+    async def get_user_food_entries(self, user_id: int, date_str: str) -> List[FoodEntryDB]:
+        """Alias for get_entries_by_date for consistent naming."""
+        return await self.get_entries_by_date(user_id, date_str)
+
+    async def log_weight(self, user_id: int, weight_kg: float, log_date: Optional[str] = None) -> int:
+        d_str = log_date or datetime.utcnow().strftime("%Y-%m-%d")
+        now = datetime.utcnow().isoformat()
+        async with self.db.get_connection() as conn:
+            cur = await conn.execute(
+                "INSERT INTO weight_logs (user_id, weight_kg, log_date, created_at) VALUES (?, ?, ?, ?);",
+                (user_id, round(weight_kg, 2), d_str, now)
+            )
+            await conn.commit()
+            return cur.lastrowid
+
+    async def get_recent_weights(self, user_id: int, limit: int = 2) -> List[Dict[str, Any]]:
+        async with self.db.get_connection() as conn:
+            cur = await conn.execute(
+                "SELECT weight_kg, log_date FROM weight_logs WHERE user_id = ? ORDER BY log_date DESC, id DESC LIMIT ?;",
+                (user_id, limit)
+            )
+            rows = await cur.fetchall()
+            return [dict(r) for r in rows]
+
+    async def log_water(self, user_id: int, amount_ml: int, log_date: Optional[str] = None) -> int:
+        d_str = log_date or datetime.utcnow().strftime("%Y-%m-%d")
+        now = datetime.utcnow().isoformat()
+        async with self.db.get_connection() as conn:
+            cur = await conn.execute(
+                "INSERT INTO water_logs (user_id, amount_ml, log_date, created_at) VALUES (?, ?, ?, ?);",
+                (user_id, amount_ml, d_str, now)
+            )
+            await conn.commit()
+            return cur.lastrowid
+
+    async def get_total_water_for_day(self, user_id: int, date_str: str) -> int:
+        async with self.db.get_connection() as conn:
+            cur = await conn.execute(
+                "SELECT COALESCE(SUM(amount_ml), 0) as total FROM water_logs WHERE user_id = ? AND log_date = ?;",
+                (user_id, date_str)
+            )
+            row = await cur.fetchone()
+            return int(row["total"]) if row and row["total"] is not None else 0
+
     async def get_daily_totals(self, user_id: int, date_str: str) -> Dict[str, Any]:
         async with self.db.get_connection() as conn:
             cursor = await conn.execute(

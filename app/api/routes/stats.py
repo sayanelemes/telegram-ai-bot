@@ -53,3 +53,34 @@ async def get_weekly_summary(
         timezone_str=user.timezone,
     )
     return WeeklySummaryResponse(**summary)
+
+
+@router.get("/morning-summary")
+async def get_morning_summary_endpoint(
+    user: UserDB = Depends(get_current_user),
+    repo: "ProductivityRepository" = Depends(lambda: None),
+):
+    from app.api.deps import get_productivity_repo, get_user_repo, get_food_repo
+    from app.services.unified_scheduler import UnifiedSchedulerService
+
+    prod_repo = get_productivity_repo()
+    u_repo = get_user_repo()
+    f_repo = get_food_repo()
+    svc = UnifiedSchedulerService(productivity_repo=prod_repo, user_repo=u_repo, food_repo=f_repo)
+    text = await svc.build_morning_summary(user.id)
+    return {"user_id": user.id, "summary_text": text}
+
+
+@router.get("/evening-checkout")
+async def get_evening_checkout_endpoint(
+    user: UserDB = Depends(get_current_user),
+):
+    from app.api.deps import get_productivity_repo, get_user_repo, get_food_repo
+    from app.services.unified_scheduler import UnifiedSchedulerService
+
+    prod_repo = get_productivity_repo()
+    u_repo = get_user_repo()
+    f_repo = get_food_repo()
+    svc = UnifiedSchedulerService(productivity_repo=prod_repo, user_repo=u_repo, food_repo=f_repo)
+    text = await svc.build_evening_checkout(user.id)
+    return {"user_id": user.id, "checkout_text": text}

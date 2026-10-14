@@ -49,6 +49,8 @@ async def main() -> None:
     food_repo = FoodRepository(db_manager)
     expense_repo = ExpenseRepository(db_manager)
     reminder_repo = ReminderRepository(db_manager)
+    from app.database.repositories.productivity_repository import ProductivityRepository
+    productivity_repo = ProductivityRepository(db_manager)
 
     # 4. Services
     nutrition_service = NutritionService()
@@ -58,6 +60,12 @@ async def main() -> None:
     )
     expense_service = ExpenseService(expense_repo)
     reminder_service = ReminderService(reminder_repo)
+    from app.services.unified_scheduler import UnifiedSchedulerService
+    unified_scheduler_service = UnifiedSchedulerService(
+        productivity_repo=productivity_repo,
+        user_repo=user_repo,
+        food_repo=food_repo,
+    )
 
     # 5. Wire up FastAPI dependencies
     setup_dependencies(
@@ -70,6 +78,8 @@ async def main() -> None:
         gemini_service=gemini_service,
         expense_service=expense_service,
         reminder_service=reminder_service,
+        productivity_repo=productivity_repo,
+        unified_scheduler_service=unified_scheduler_service,
     )
     fastapi_app = create_app()
 
@@ -88,10 +98,12 @@ async def main() -> None:
     # 7. Bot & Dispatcher
     bot = create_bot(settings)
     reminder_service.set_bot(bot)
+    unified_scheduler_service.set_bot(bot)
 
-    # 8. Start reminder scheduler & sync jobs from SQLite
+    # 8. Start schedulers & sync jobs
     reminder_service.start()
     await reminder_service.sync_all_jobs()
+    unified_scheduler_service.start()
 
     dp = create_dispatcher(
         settings=settings,
@@ -104,6 +116,8 @@ async def main() -> None:
         gemini_service=gemini_service,
         expense_service=expense_service,
         reminder_service=reminder_service,
+        productivity_repo=productivity_repo,
+        unified_scheduler_service=unified_scheduler_service,
     )
 
     try:

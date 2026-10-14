@@ -13,6 +13,11 @@ from app.api.routes.supplements import router as supplements_router
 from app.api.routes.stats import router as stats_router
 from app.api.routes.recipes import router as recipes_router
 from app.api.routes.shopping import router as shopping_router
+from app.api.routes.tasks import router as tasks_router
+from app.api.routes.notes import router as notes_router
+from app.api.routes.habits import router as habits_router
+from app.api.routes.checkins import router as checkins_router
+from app.api.routes.modes import router as modes_router
 
 api_router = APIRouter(prefix="/api")
 api_router.include_router(auth_router)
@@ -29,5 +34,10 @@ api_router.include_router(supplements_router)
 api_router.include_router(stats_router)
 api_router.include_router(recipes_router)
 api_router.include_router(shopping_router)
+api_router.include_router(tasks_router)
+api_router.include_router(notes_router)
+api_router.include_router(habits_router)
+api_router.include_router(checkins_router)
+api_router.include_router(modes_router)
 
 __all__ = ["api_router"]

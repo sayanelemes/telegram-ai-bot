@@ -280,6 +280,7 @@ CREATE TABLE IF NOT EXISTS check_ins (
     log_date TEXT NOT NULL,
     mood INTEGER NOT NULL,
     energy INTEGER NOT NULL,
+    satiety INTEGER DEFAULT 3,
     notes TEXT,
     created_at TEXT NOT NULL,
     UNIQUE(user_id, log_date),
@@ -507,6 +508,7 @@ class DatabaseManager:
                 ("budgets", "impulse_monthly_limit", "REAL DEFAULT 0.0"),
                 ("calorie_goals", "training_surplus_pct", "INTEGER DEFAULT 10"),
                 ("tasks", "postponed_count", "INTEGER DEFAULT 0"),
+                ("check_ins", "satiety", "INTEGER DEFAULT 3"),
             ]
             for table, col, col_type in migrations:
                 try:

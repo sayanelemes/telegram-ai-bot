@@ -12,11 +12,13 @@ from app.database.repositories import (
     ExpenseRepository,
     ReminderRepository,
 )
+from app.database.repositories.productivity_repository import ProductivityRepository
 from app.services import (
     NutritionService,
     GeminiService,
     ExpenseService,
     ReminderService,
+    UnifiedSchedulerService,
 )
 
 logger = logging.getLogger(__name__)
@@ -37,6 +39,8 @@ def create_dispatcher(
     gemini_service: GeminiService,
     expense_service: ExpenseService,
     reminder_service: ReminderService,
+    productivity_repo: ProductivityRepository | None = None,
+    unified_scheduler_service: UnifiedSchedulerService | None = None,
 ) -> Dispatcher:
     dp = Dispatcher(storage=MemoryStorage())
 
@@ -46,6 +50,9 @@ def create_dispatcher(
     dp.message.middleware(ErrorHandlingMiddleware())
     dp.callback_query.middleware(ErrorHandlingMiddleware())
 
+    if productivity_repo is None:
+        productivity_repo = ProductivityRepository(db_manager)
+
     # Dependency Injection into aiogram handler kwargs
     dp["settings"] = settings
     dp["db_manager"] = db_manager
@@ -53,10 +60,12 @@ def create_dispatcher(
     dp["food_repo"] = food_repo
     dp["expense_repo"] = expense_repo
     dp["reminder_repo"] = reminder_repo
+    dp["productivity_repo"] = productivity_repo
     dp["nutrition_service"] = nutrition_service
     dp["gemini_service"] = gemini_service
     dp["expense_service"] = expense_service
     dp["reminder_service"] = reminder_service
+    dp["unified_scheduler_service"] = unified_scheduler_service
 
     # Include all routers
     for router in all_routers:
