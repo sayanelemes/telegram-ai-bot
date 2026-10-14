@@ -18,7 +18,9 @@ from app.services import (
 from app.api.auth import get_current_user_from_init_data
 
 from app.database.repositories.productivity_repository import ProductivityRepository
+from app.database.repositories.workout_repository import WorkoutRepository
 from app.services.unified_scheduler import UnifiedSchedulerService
+from app.services.workout import WorkoutService
 
 # Singleton references set during app startup
 _db_manager: Optional[DatabaseManager] = None
@@ -27,6 +29,7 @@ _food_repo: Optional[FoodRepository] = None
 _expense_repo: Optional[ExpenseRepository] = None
 _reminder_repo: Optional[ReminderRepository] = None
 _productivity_repo: Optional[ProductivityRepository] = None
+_workout_repo: Optional[WorkoutRepository] = None
 _nutrition_service: Optional[NutritionService] = None
 _gemini_service: Optional[GeminiService] = None
 _expense_service: Optional[ExpenseService] = None
@@ -46,8 +49,9 @@ def setup_dependencies(
     reminder_service: ReminderService,
     productivity_repo: Optional[ProductivityRepository] = None,
     unified_scheduler_service: Optional[UnifiedSchedulerService] = None,
+    workout_repo: Optional[WorkoutRepository] = None,
 ) -> None:
-    global _db_manager, _user_repo, _food_repo, _expense_repo, _reminder_repo, _productivity_repo
+    global _db_manager, _user_repo, _food_repo, _expense_repo, _reminder_repo, _productivity_repo, _workout_repo
     global _nutrition_service, _gemini_service, _expense_service, _reminder_service, _unified_scheduler_service
 
     _db_manager = db_manager
@@ -56,6 +60,7 @@ def setup_dependencies(
     _expense_repo = expense_repo
     _reminder_repo = reminder_repo
     _productivity_repo = productivity_repo or ProductivityRepository(db_manager)
+    _workout_repo = workout_repo or WorkoutRepository(db_manager)
     _nutrition_service = nutrition_service
     _gemini_service = gemini_service
     _expense_service = expense_service
@@ -74,6 +79,28 @@ def get_productivity_repo() -> ProductivityRepository:
         _productivity_repo = ProductivityRepository(_db_manager)
     assert _productivity_repo is not None, "ProductivityRepository not initialized"
     return _productivity_repo
+
+
+def get_workout_repo() -> WorkoutRepository:
+    global _workout_repo
+    if _workout_repo is None and _db_manager is not None:
+        _workout_repo = WorkoutRepository(_db_manager)
+    assert _workout_repo is not None, "WorkoutRepository not initialized"
+    return _workout_repo
+
+
+def get_workout_service(
+    workout_repo: WorkoutRepository = Depends(get_workout_repo),
+    user_repo: UserRepository = Depends(lambda: _user_repo),
+    gemini_service: GeminiService = Depends(lambda: _gemini_service),
+) -> WorkoutService:
+    assert _user_repo is not None
+    assert _gemini_service is not None
+    return WorkoutService(
+        workout_repo=workout_repo,
+        user_repo=_user_repo,
+        gemini_service=_gemini_service,
+    )
 
 
 def get_unified_scheduler_service() -> Optional[UnifiedSchedulerService]:

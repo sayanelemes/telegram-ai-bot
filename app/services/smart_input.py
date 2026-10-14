@@ -255,8 +255,43 @@ class SmartInputService:
                 weight_kg=weight_val
             )
 
-        # 3. Gemini Parse
+        # 3. Fast-path: Workout logging ("жим 60x8x3", "присед 100 5х5")
+        from app.database.repositories.workout_repository import WorkoutRepository
+        from app.database.repositories.user_repository import UserRepository
+        from app.services.workout import WorkoutService
+        w_svc = WorkoutService(WorkoutRepository(self.db), UserRepository(self.db), self.gemini)
+        workout_items = w_svc.parse_workout_text_regex(text)
+        if workout_items:
+            try:
+                tz = ZoneInfo(timezone_str)
+            except Exception:
+                tz = ZoneInfo("Asia/Almaty")
+            today_str = datetime.now(tz).strftime("%Y-%m-%d")
+            w_res = await w_svc.log_workout(user_id=user_id, text=text, workout_date=today_str)
+            return ProcessedInputOutcome(
+                action="saved",
+                intent="workout_log",
+                message=w_res["reminder_message"],
+                confidence=1.0,
+            )
+
+        # 4. Gemini Parse
         parsed = await self.parse_single_phrase(text, user_id=user_id, timezone_str=timezone_str)
+
+        if parsed.intent == "workout_log":
+            try:
+                tz = ZoneInfo(timezone_str)
+            except Exception:
+                tz = ZoneInfo("Asia/Almaty")
+            today_str = datetime.now(tz).strftime("%Y-%m-%d")
+            w_res = await w_svc.log_workout(user_id=user_id, text=text, workout_date=today_str)
+            return ProcessedInputOutcome(
+                action="saved",
+                intent="workout_log",
+                message=w_res["reminder_message"],
+                confidence=parsed.confidence,
+                raw_result=parsed,
+            )
 
         if parsed.intent == "other" or not parsed.items:
             return ProcessedInputOutcome(

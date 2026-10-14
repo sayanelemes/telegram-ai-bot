@@ -21,6 +21,7 @@ from app.services.smart_input import (
 from app.services.stats import StatsService
 from app.services.recipes import RecipeService
 from app.services.unified_scheduler import UnifiedSchedulerService
+from app.services.workout import WorkoutService
 
 __all__ = [
     "NutritionService",
@@ -44,4 +45,5 @@ __all__ = [
     "StatsService",
     "RecipeService",
     "UnifiedSchedulerService",
+    "WorkoutService",
 ]

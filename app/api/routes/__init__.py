@@ -18,6 +18,7 @@ from app.api.routes.notes import router as notes_router
 from app.api.routes.habits import router as habits_router
 from app.api.routes.checkins import router as checkins_router
 from app.api.routes.modes import router as modes_router
+from app.api.routes.workouts import router as workouts_router
 
 api_router = APIRouter(prefix="/api")
 api_router.include_router(auth_router)
@@ -39,5 +40,6 @@ api_router.include_router(notes_router)
 api_router.include_router(habits_router)
 api_router.include_router(checkins_router)
 api_router.include_router(modes_router)
+api_router.include_router(workouts_router)
 
 __all__ = ["api_router"]

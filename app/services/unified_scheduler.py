@@ -233,6 +233,12 @@ class UnifiedSchedulerService:
         consumed_cals = sum(it.calories for e in entries for it in e.items)
         goal = await self.user_repo.get_calorie_goal(user_id)
         target_cals = goal.target_calories if goal else 2500
+
+        from app.database.repositories.workout_repository import WorkoutRepository
+        w_repo = WorkoutRepository(self.productivity_repo.db)
+        if await w_repo.has_workout_today(user_id, today_str):
+            target_cals = round(target_cals * 1.10)
+
         deficit = target_cals - consumed_cals
 
         if deficit <= 150:
@@ -371,6 +377,11 @@ class UnifiedSchedulerService:
         goal = await self.user_repo.get_calorie_goal(user_id)
         target_cals = goal.target_calories if goal else 2500
         target_p = goal.target_protein_g if goal else 150
+
+        from app.database.repositories.workout_repository import WorkoutRepository
+        w_repo = WorkoutRepository(self.productivity_repo.db)
+        if await w_repo.has_workout_today(user_id, today_str):
+            target_cals = round(target_cals * 1.10)
 
         cal_def = target_cals - consumed_cals
         p_def = target_p - consumed_p
