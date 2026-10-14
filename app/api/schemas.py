@@ -96,6 +96,7 @@ class ExpenseEntryResponse(BaseModel):
     ai_analysis: Optional[str] = None
     description: Optional[str] = None
     expense_date: str
+    alert: Optional[str] = None
     items: List[ExpenseItemSchema] = Field(default_factory=list)
 
 
@@ -206,3 +207,85 @@ class HistoryDayResponse(BaseModel):
     carbs: float
     target_calories: int
     percentage: int
+
+
+class CategoryBudgetSchema(BaseModel):
+    id: Optional[int] = None
+    category: str
+    monthly_limit: float
+    spent: float = 0.0
+    percentage: float = 0.0
+    alert_80_sent: bool = False
+    alert_100_sent: bool = False
+
+
+class CategoryBudgetCreateRequest(BaseModel):
+    category: str
+    monthly_limit: float = Field(gt=0.0)
+
+
+class TopCategoryItem(BaseModel):
+    category: str
+    label: str
+    total: float
+    count: int
+    percentage: float
+
+
+class RecurringExpenseItem(BaseModel):
+    merchant: str
+    amount: float
+    category: str
+    occurrences: int
+    last_date: str
+
+
+class ExpenseStatsResponse(BaseModel):
+    period: str
+    average_check: float
+    total_spent: float
+    total_count: int
+    top_categories: List[TopCategoryItem]
+    recurring_expenses: List[RecurringExpenseItem]
+    category_budgets: List[CategoryBudgetSchema]
+
+
+class NutritionDayItem(BaseModel):
+    date: str
+    meals_count: int
+    calories: int
+    protein: float
+    fat: float
+    carbs: float
+    target_calories: int
+    is_risk: bool
+    is_surplus: bool
+
+
+class NutritionStatsResponse(BaseModel):
+    period: str
+    total_calories: int
+    total_protein: float
+    total_fat: float
+    total_carbs: float
+    average_calories: int
+    target_calories: int
+    total_days: int
+    risk_days_count: int
+    surplus_days_count: int
+    days: List[NutritionDayItem]
+
+
+class WeeklySummaryResponse(BaseModel):
+    start_date: str
+    end_date: str
+    average_calories: int
+    target_calories: int
+    surplus_days: int
+    risk_days: int
+    total_expenses: float
+    top_categories: List[TopCategoryItem]
+    impulse_expenses_total: float
+    impulse_percentage: float
+    summary_text: str
+

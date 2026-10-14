@@ -1,12 +1,14 @@
 import logging
 from datetime import datetime
+from typing import Optional
 from zoneinfo import ZoneInfo
-from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, status
+from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Response, status
 from app.api.deps import (
     get_current_user,
     get_expense_repo,
     get_expense_service,
     get_gemini_service,
+    get_stats_service,
 )
 from app.api.schemas import (
     ExpensesSummaryResponse,
@@ -17,6 +19,8 @@ from app.api.schemas import (
     ExpenseSaveRequest,
     BudgetSchema,
     BudgetUpdateRequest,
+    CategoryBudgetSchema,
+    CategoryBudgetCreateRequest,
 )
 from app.database.models import UserDB, ExpenseDB, ExpenseItemDB
 from app.database.repositories import ExpenseRepository
@@ -183,6 +187,16 @@ async def save_expense(
     )
 
     saved = await expense_repo.create_expense(expense)
+
+    month_start_str = datetime.now(tz).strftime("%Y-%m-01")
+    alert_info = await expense_repo.check_category_budget_alert(
+        user_id=user.id,
+        category=saved.category,
+        month_start_date=month_start_str,
+        current_date=today_str,
+    )
+    alert_msg = alert_info["message"] if alert_info else None
+
     return ExpenseEntryResponse(
         id=saved.id,
         merchant=saved.merchant,
@@ -195,6 +209,7 @@ async def save_expense(
         ai_analysis=saved.ai_analysis,
         description=saved.description,
         expense_date=saved.expense_date,
+        alert=alert_msg,
         items=[
             ExpenseItemSchema(
                 id=it.id,
@@ -205,6 +220,64 @@ async def save_expense(
             for it in saved.items
         ]
     )
+
+
+@router.get("/export/csv")
+async def export_expenses_csv(
+    start_date: Optional[str] = None,
+    end_date: Optional[str] = None,
+    user: UserDB = Depends(get_current_user),
+    expense_repo: ExpenseRepository = Depends(get_expense_repo),
+):
+    csv_data = await expense_repo.export_expenses_csv(
+        user_id=user.id,
+        start_date=start_date,
+        end_date=end_date,
+    )
+    return Response(
+        content=csv_data,
+        media_type="text/csv",
+        headers={"Content-Disposition": 'attachment; filename="expenses.csv"'}
+    )
+
+
+@router.get("/category-limits", response_model=list[CategoryBudgetSchema])
+async def get_category_limits(
+    user: UserDB = Depends(get_current_user),
+    expense_repo: ExpenseRepository = Depends(get_expense_repo),
+    stats_service: "StatsService" = Depends(get_stats_service),
+):
+    stats = await stats_service.get_expense_stats(user.id, period="month", timezone_str=user.timezone)
+    return [CategoryBudgetSchema(**cb) for cb in stats["category_budgets"]]
+
+
+@router.post("/category-limits", response_model=CategoryBudgetSchema)
+async def set_category_limit(
+    payload: CategoryBudgetCreateRequest,
+    user: UserDB = Depends(get_current_user),
+    expense_repo: ExpenseRepository = Depends(get_expense_repo),
+):
+    saved = await expense_repo.save_category_budget(
+        user_id=user.id,
+        category=payload.category,
+        monthly_limit=payload.monthly_limit,
+    )
+    return CategoryBudgetSchema(
+        category=saved["category"],
+        monthly_limit=saved["monthly_limit"],
+    )
+
+
+@router.delete("/category-limits/{category}")
+async def delete_category_limit(
+    category: str,
+    user: UserDB = Depends(get_current_user),
+    expense_repo: ExpenseRepository = Depends(get_expense_repo),
+):
+    deleted = await expense_repo.delete_category_budget(user.id, category)
+    if not deleted:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Лимит категории не найден.")
+    return {"success": True, "message": "Лимит категории удален"}
 
 
 @router.get("/budget", response_model=BudgetSchema)
@@ -230,6 +303,7 @@ async def update_budget(
     )
     summary = await expense_service.get_budget_summary(user.id, user.timezone)
     return BudgetSchema(**summary)
+
 
 
 @router.delete("/{expense_id}")

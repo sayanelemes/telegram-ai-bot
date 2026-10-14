@@ -419,3 +419,106 @@ class FoodRepository:
                     (s["id"], user_id, taken_date, datetime.utcnow().isoformat())
                 )
             await conn.commit()
+
+    async def get_period_nutrition_stats(
+        self,
+        user_id: int,
+        start_date: str,
+        end_date: str,
+        target_calories: int = 2000
+    ) -> Dict[str, Any]:
+        """
+        Aggregate nutrition across [start_date, end_date].
+        Includes daily breakdown, identifying bulking risk days (< 90% of target).
+        """
+        async with self.db.get_connection() as conn:
+            cursor = await conn.execute(
+                "SELECT entry_date, "
+                "COUNT(id) as meals_count, "
+                "COALESCE(SUM(total_calories), 0) as calories, "
+                "COALESCE(SUM(total_protein), 0.0) as protein, "
+                "COALESCE(SUM(total_fat), 0.0) as fat, "
+                "COALESCE(SUM(total_carbs), 0.0) as carbs "
+                "FROM food_entries "
+                "WHERE user_id = ? AND entry_date >= ? AND entry_date <= ? "
+                "GROUP BY entry_date "
+                "ORDER BY entry_date ASC",
+                (user_id, start_date, end_date)
+            )
+            rows = await cursor.fetchall()
+
+            day_map = {
+                r["entry_date"]: {
+                    "date": r["entry_date"],
+                    "meals_count": r["meals_count"],
+                    "calories": int(r["calories"]),
+                    "protein": round(float(r["protein"]), 1),
+                    "fat": round(float(r["fat"]), 1),
+                    "carbs": round(float(r["carbs"]), 1),
+                }
+                for r in rows
+            }
+
+            from datetime import timedelta
+            s_date = datetime.strptime(start_date, "%Y-%m-%d").date()
+            e_date = datetime.strptime(end_date, "%Y-%m-%d").date()
+            cur = s_date
+
+            days = []
+            total_calories = 0
+            total_protein = 0.0
+            total_fat = 0.0
+            total_carbs = 0.0
+            risk_days_count = 0
+            surplus_days_count = 0
+            threshold_risk = target_calories * 0.90 if target_calories > 0 else 0
+
+            while cur <= e_date:
+                d_str = cur.strftime("%Y-%m-%d")
+                d_data = day_map.get(d_str, {
+                    "date": d_str,
+                    "meals_count": 0,
+                    "calories": 0,
+                    "protein": 0.0,
+                    "fat": 0.0,
+                    "carbs": 0.0,
+                }).copy()
+
+                cal = d_data["calories"]
+                is_risk = cal < threshold_risk if target_calories > 0 else False
+                is_surplus = cal >= target_calories if target_calories > 0 else False
+
+                if is_risk:
+                    risk_days_count += 1
+                if is_surplus:
+                    surplus_days_count += 1
+
+                total_calories += cal
+                total_protein += d_data["protein"]
+                total_fat += d_data["fat"]
+                total_carbs += d_data["carbs"]
+
+                d_data["is_risk"] = is_risk
+                d_data["is_surplus"] = is_surplus
+                d_data["target_calories"] = target_calories
+                days.append(d_data)
+                cur += timedelta(days=1)
+
+            total_days = max(1, len(days))
+            avg_cal = round(total_calories / total_days)
+
+            return {
+                "start_date": start_date,
+                "end_date": end_date,
+                "total_days": len(days),
+                "total_calories": total_calories,
+                "total_protein": round(total_protein, 1),
+                "total_fat": round(total_fat, 1),
+                "total_carbs": round(total_carbs, 1),
+                "average_calories": avg_cal,
+                "target_calories": target_calories,
+                "risk_days_count": risk_days_count,
+                "surplus_days_count": surplus_days_count,
+                "days": days,
+            }
+

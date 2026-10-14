@@ -84,6 +84,10 @@ class ExpenseDB(BaseModel):
     raw_text: Optional[str] = None
     ai_analysis: Optional[str] = None
     is_impulsive: bool = False
+    is_impulse: bool = False
+    impulse_reason: Optional[str] = None
+    link_id: Optional[str] = None
+    source: Optional[str] = "manual"
     expense_date: str  # YYYY-MM-DD
     created_at: str = Field(default_factory=lambda: datetime.utcnow().isoformat())
     items: List[ExpenseItemDB] = Field(default_factory=list)
@@ -95,6 +99,17 @@ class BudgetDB(BaseModel):
     weekly_budget: float = 0.0
     monthly_budget: float = 0.0
     currency: str = "₸"
+    impulse_monthly_limit: float = 0.0
+    updated_at: str = Field(default_factory=lambda: datetime.utcnow().isoformat())
+
+
+class CategoryBudgetDB(BaseModel):
+    id: Optional[int] = None
+    user_id: int
+    category: str
+    monthly_limit: float
+    alert_80_sent: bool = False
+    alert_100_sent: bool = False
     updated_at: str = Field(default_factory=lambda: datetime.utcnow().isoformat())
 
 

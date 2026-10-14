@@ -18,6 +18,8 @@ from app.services.smart_input import (
     ProcessedInputOutcome,
 )
 
+from app.services.stats import StatsService
+
 __all__ = [
     "NutritionService",
     "NutritionCalculationResult",
@@ -37,4 +39,5 @@ __all__ = [
     "SmartInputResult",
     "SmartInputItem",
     "ProcessedInputOutcome",
+    "StatsService",
 ]

@@ -99,6 +99,15 @@ def get_reminder_service() -> ReminderService:
     return _reminder_service
 
 
+def get_stats_service(
+    user_repo: UserRepository = Depends(get_user_repo),
+    food_repo: FoodRepository = Depends(get_food_repo),
+    expense_repo: ExpenseRepository = Depends(get_expense_repo),
+) -> "StatsService":
+    from app.services.stats import StatsService
+    return StatsService(user_repo=user_repo, food_repo=food_repo, expense_repo=expense_repo)
+
+
 async def get_current_user(
     authorization: Optional[str] = Header(None, alias="Authorization"),
     x_telegram_init_data: Optional[str] = Header(None, alias="X-Telegram-Init-Data"),
